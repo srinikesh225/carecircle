@@ -153,6 +153,11 @@ function CareBrief() {
       {!brief && !busy && (
         <p className="text-ink-2">A short plain-English update for anyone who has not looked at the app today, written only from the records above. It never gives medical advice.</p>
       )}
+      {busy && (
+        <p role="status" className="mb-3 text-ink-2">
+          Writing the brief from today’s records. This usually takes a few seconds; if the AI service is busy, a brief written directly from the records appears instead.
+        </p>
+      )}
       <ErrorText error={error} />
       {brief && (
         <div aria-live="polite">

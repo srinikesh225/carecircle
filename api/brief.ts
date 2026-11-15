@@ -17,9 +17,11 @@ const UNSAFE = /\b(increase|decrease|reduce|double|halve|stop taking|skip the|ad
  * Tried in order. Google retires models for new users and sheds load with 503s, so a busy, missing or slow
  * model falls through to the next one. GEMINI_MODEL (optional) is tried first.
  */
-const DEFAULT_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest']
-const PER_ATTEMPT_MS = 12_000
-const TOTAL_BUDGET_MS = 30_000
+// Lite first: a 3-5 sentence summary of structured facts doesn't need a larger model, and it is the
+// fastest and least congested. The larger models are backups.
+const DEFAULT_MODELS = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-flash-latest']
+const PER_ATTEMPT_MS = 10_000
+const TOTAL_BUDGET_MS = 25_000
 
 type GeminiResponse = { candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
 
