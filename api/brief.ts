@@ -25,7 +25,7 @@ export default handle(async (req, res) => {
   const key = process.env.GEMINI_API_KEY
   if (!key) return res.status(200).json({ source: 'records', text: fallback, note: 'AI is not configured on this deployment, so this brief was composed directly from the records.' })
 
-  const model = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'
+  const model = process.env.GEMINI_MODEL ?? 'gemini-3.8-flash'
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
