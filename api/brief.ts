@@ -33,18 +33,26 @@ export default handle(async (req, res) => {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM }] },
         contents: [{ role: 'user', parts: [{ text: `Facts:\n${JSON.stringify(facts).slice(0, 12000)}` }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 400 },
+        // Thinking models (2.5 and later) count their reasoning against this limit, so it is generous;
+        // the system prompt is what keeps the brief to 3-5 sentences.
+        generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
       }),
     })
-    if (!r.ok) throw new Error(`Gemini ${r.status}`)
-    const data = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
-    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('').trim()
-    if (!text) throw new Error('empty')
+    if (!r.ok) {
+      // Log Google's error (never the key) so a rejected key or unknown model shows up in Vercel's function logs.
+      const err = (await r.json().catch(() => null)) as { error?: { status?: string; message?: string } } | null
+      throw new Error(`Gemini HTTP ${r.status} ${err?.error?.status ?? ''}: ${(err?.error?.message ?? '').slice(0, 300)}`)
+    }
+    const data = (await r.json()) as { candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
+    const cand = data.candidates?.[0]
+    const text = cand?.content?.parts?.filter((p) => !p.thought).map((p) => p.text ?? '').join('').trim()
+    if (!text) throw new Error(`Gemini returned no text (finishReason: ${cand?.finishReason ?? 'none'})`)
     if (UNSAFE.test(text)) {
       return res.status(200).json({ source: 'records', text: fallback, note: 'The AI draft included advice-like wording, so it was discarded and this brief was composed from the records instead.' })
     }
     return res.status(200).json({ source: 'gemini', model, text })
-  } catch {
+  } catch (e) {
+    console.error('[brief] AI call failed, using records fallback:', e instanceof Error ? e.message : e)
     return res.status(200).json({ source: 'records', text: fallback, note: 'The AI service did not respond, so this brief was composed directly from the records.' })
   }
 })
