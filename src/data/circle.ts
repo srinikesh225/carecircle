@@ -319,15 +319,23 @@ export async function removeMember(circleId: string, actor: Actor, member: Membe
 }
 
 /**
+ * A reminder that was not sent (email service not configured yet, provider error, or a tab that closed
+ * mid-send) may be claimed again after this cooldown, so adding the email key later still delivers it
+ * and a persistent failure is retried at most every 10 minutes. Sent reminders are never repeated.
+ */
+export const RETRY_AFTER_MS = 10 * 60_000
+export const canRetry = (n: Pick<NotificationRecord, 'status' | 'at'>, now = Date.now(), after = RETRY_AFTER_MS) => n.status !== 'sent' && now - n.at >= after
+
+/**
  * Claims the right to send a notification for one event. Returns false if another member
  * (or another open tab) already claimed it — this is what stops duplicate emails.
  */
-export async function claimNotification(circleId: string, id: string, rec: Omit<NotificationRecord, 'id' | 'status' | 'detail'>): Promise<boolean> {
+export async function claimNotification(circleId: string, id: string, rec: Omit<NotificationRecord, 'id' | 'status' | 'detail'>, retryAfterMs = RETRY_AFTER_MS): Promise<boolean> {
   const ref = doc(col(circleId, 'notifications'), id)
   try {
     return await runTransaction(db, async (tx) => {
       const existing = await tx.get(ref)
-      if (existing.exists()) return false
+      if (existing.exists() && !canRetry(existing.data() as NotificationRecord, Date.now(), retryAfterMs)) return false
       tx.set(ref, { ...rec, status: 'pending', detail: '' })
       return true
     })

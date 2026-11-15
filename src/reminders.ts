@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { auth } from './data/firebase'
-import { claimNotification, settleNotification } from './data/circle'
+import { canRetry, claimNotification, settleNotification } from './data/circle'
 import type { NotificationRecord } from './domain/types'
 import { at, dayKey, fmtDate, fmtTime, scheduleFor } from './domain/schedule'
 import { useCircleCtx } from './pages/CircleShell'
@@ -27,8 +27,9 @@ interface NotifyResult {
  * Sends one email to the whole circle for an event, at most once per event id.
  * The Firestore record is the lock (first claimer sends) and the audit trail.
  */
-export async function notifyCircle(circleId: string, id: string, kind: NotificationRecord['kind'], subject: string, text: string, byName: string): Promise<NotificationRecord['status'] | 'duplicate'> {
-  const claimed = await claimNotification(circleId, id, { kind, subject, body: text, recipients: [], at: Date.now(), triggeredByName: byName })
+/** `manual`: a person pressed a button, so an unsent earlier attempt may be retried straight away (no cooldown). */
+export async function notifyCircle(circleId: string, id: string, kind: NotificationRecord['kind'], subject: string, text: string, byName: string, manual = false): Promise<NotificationRecord['status'] | 'duplicate'> {
+  const claimed = await claimNotification(circleId, id, { kind, subject, body: text, recipients: [], at: Date.now(), triggeredByName: byName }, manual ? 0 : undefined)
   if (!claimed) return 'duplicate'
   try {
     const r = await api<NotifyResult>('/api/notify', { circleId, subject, text, appUrl: `${location.origin}/c/${circleId}` })
@@ -53,7 +54,8 @@ export function useReminderEngine() {
 
   useEffect(() => {
     const today = dayKey(now)
-    const known = new Set(data.notifications.map((n) => n.id))
+    // Events already handled; unsent ones become eligible again after the retry cooldown.
+    const known = new Set(data.notifications.filter((n) => !canRetry(n)).map((n) => n.id))
     const first = data.patient.name.split(' ')[0]
     const jobs: [string, NotificationRecord['kind'], string, string][] = []
 
@@ -83,7 +85,8 @@ export function useReminderEngine() {
     for (const [id, kind, subject, text] of jobs) {
       if (known.has(id) || inflight.current.has(id)) continue
       inflight.current.add(id)
-      void notifyCircle(circleId, id, kind, subject, text, `${actor.name} (automatic)`)
+      // Release the in-memory guard when done; the Firestore record (and its cooldown) decides any retry.
+      void notifyCircle(circleId, id, kind, subject, text, `${actor.name} (automatic)`).finally(() => inflight.current.delete(id))
     }
   }, [now, data.notifications, data.medications, data.logs, data.appointments, data.patient.name, circleId, actor.name])
 }

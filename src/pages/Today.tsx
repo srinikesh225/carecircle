@@ -92,12 +92,13 @@ function AttentionRow({ item }: { item: AttentionItem }) {
   const tone = { urgent: 'border-alert/40 bg-alert-soft', watch: 'border-warn/40 bg-warn-soft', info: 'border-info/30 bg-info-soft' }[item.level]
   const Icon = item.level === 'info' ? CalendarClock : item.level === 'urgent' ? AlertTriangle : Eye
   const iconTone = { urgent: 'text-alert', watch: 'text-warn', info: 'text-info' }[item.level]
-  const prior = data.notifications.find((n) => n.id === `manual_${item.key}_${dayKey(new Date())}`)
+  // Only a delivered email locks the button; an unsent attempt can be retried.
+  const prior = data.notifications.find((n) => n.id === `manual_${item.key}_${dayKey(new Date())}` && n.status === 'sent')
 
   async function email() {
     const first = data.patient.name.split(' ')[0]
     const status = await run(() =>
-      notifyCircle(circleId, `manual_${item.key}_${dayKey(new Date())}`, item.level === 'info' ? 'appointment' : 'unconfirmed-dose', `${first}: ${item.title}`, `${item.title}.\n\n${item.detail}\n\nSent by ${actor.name} from CareCircle.`, actor.name),
+      notifyCircle(circleId, `manual_${item.key}_${dayKey(new Date())}`, item.level === 'info' ? 'appointment' : 'unconfirmed-dose', `${first}: ${item.title}`, `${item.title}.\n\n${item.detail}\n\nSent by ${actor.name} from CareCircle.`, actor.name, true),
     )
     setResult(status === 'sent' ? 'Emailed the circle.' : status === 'not-configured' ? 'Email is not configured on this deployment, so nothing was sent. Logged on the People page.' : status === 'duplicate' ? 'Already sent today.' : 'Email could not be sent.')
   }
