@@ -1,0 +1,33 @@
+@import '@fontsource/atkinson-hyperlegible/400.css';
+@import '@fontsource/atkinson-hyperlegible/700.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: 247 245 240;      /* #F7F5F0 warm paper */
+  --card: 255 255 255;
+  --ink: 29 37 32;           /* #1D2520 */
+  --ink-2: 74 84 78;         /* #4A544E  ~7:1 on paper */
+  --line: 222 218 208;       /* #DEDAD0 */
+  --brand: 36 91 74;         /* #245B4A deep green */
+  --brand-dark: 26 69 56;
+  --brand-soft: 227 238 232;
+  --warn: 138 75 8;          /* #8A4B08 */
+  --warn-soft: 251 239 217;
+  --alert: 161 39 27;        /* #A1271B */
+  --alert-soft: 249 228 225;
+  --info: 35 78 122;         /* #234E7A */
+  --info-soft: 227 236 246;
+  color-scheme: light;
+}
+
+html { font-size: 17px; -webkit-text-size-adjust: 100%; }
+body { @apply bg-paper text-ink font-sans antialiased; line-height: 1.5; }
+h1, h2, h3 { line-height: 1.2; }
+:focus-visible { outline: 3px solid rgb(var(--brand)); outline-offset: 2px; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

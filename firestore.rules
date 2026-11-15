@@ -1,0 +1,105 @@
+rules_version = '2';
+
+// CareCircle access model
+// - Everything about a patient lives under /circles/{circleId}.
+// - Only members of a circle can read it. Membership is a doc at members/{uid}.
+// - You become a member only by (a) creating the circle, or (b) presenting the circle's
+//   passcode, which rules compare against /circles/{c}/secret/join. Non-members cannot read
+//   that doc, so the passcode is never exposed to them.
+// - Patient and family edit the care plan (medications, profile, passcode).
+//   Every member can record doses, add appointments and write care notes.
+//   Notes and activity are append-only so the shared timeline cannot be rewritten.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function circlePath(c) { return /databases/$(db)/documents/circles/$(c); }
+    function memberPath(c) { return /databases/$(db)/documents/circles/$(c)/members/$(request.auth.uid); }
+    function isMember(c) { return signedIn() && exists(memberPath(c)); }
+    function myRole(c) { return get(memberPath(c)).data.role; }
+    function canEditPlan(c) { return isMember(c) && myRole(c) in ['patient', 'family']; }
+    function validRole(r) { return r in ['patient', 'family', 'caregiver']; }
+    function isNow(t) { return t is int && t > request.time.toMillis() - 300000 && t < request.time.toMillis() + 300000; }
+
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /circles/{c} {
+      allow read: if isMember(c);
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if canEditPlan(c) && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if false;
+
+      match /secret/{doc} {
+        allow read: if isMember(c);
+        allow create: if signedIn() && getAfter(circlePath(c)).data.createdBy == request.auth.uid;
+        allow update: if canEditPlan(c) && request.resource.data.passcode is string && request.resource.data.passcode.size() >= 8;
+        allow delete: if false;
+      }
+
+      match /members/{uid} {
+        allow read: if isMember(c);
+        allow create: if signedIn()
+          && uid == request.auth.uid
+          && request.resource.data.uid == uid
+          && validRole(request.resource.data.role)
+          && request.resource.data.name is string && request.resource.data.name.size() > 0
+          && (
+            getAfter(circlePath(c)).data.createdBy == request.auth.uid
+            || request.resource.data.passcode == get(/databases/$(db)/documents/circles/$(c)/secret/join).data.passcode
+          );
+        // Members may update their own name/email but not promote themselves.
+        allow update: if signedIn() && uid == request.auth.uid && request.resource.data.role == resource.data.role;
+        allow delete: if signedIn() && (uid == request.auth.uid || canEditPlan(c));
+      }
+
+      match /medications/{id} {
+        allow read: if isMember(c);
+        allow create, update: if canEditPlan(c)
+          && request.resource.data.name is string && request.resource.data.name.size() > 0
+          && request.resource.data.times is list && request.resource.data.times.size() > 0;
+        allow delete: if canEditPlan(c);
+      }
+
+      match /appointments/{id} {
+        allow read: if isMember(c);
+        allow create, update: if isMember(c) && request.resource.data.title is string && request.resource.data.date is string;
+        allow delete: if isMember(c);
+      }
+
+      match /doseLogs/{id} {
+        allow read: if isMember(c);
+        allow create, update: if isMember(c)
+          && request.resource.data.byUid == request.auth.uid
+          && request.resource.data.status in ['taken', 'skipped'];
+        allow delete: if isMember(c);
+      }
+
+      match /notes/{id} {
+        allow read: if isMember(c);
+        allow create: if isMember(c)
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.kind in ['note', 'handover']
+          && request.resource.data.text is string && request.resource.data.text.size() > 0
+          // No back-dating, except sample history written while creating a demo circle.
+          && (isNow(request.resource.data.at) || getAfter(circlePath(c)).data.demo == true);
+        allow update, delete: if false;
+      }
+
+      match /activity/{id} {
+        allow read: if isMember(c);
+        allow create: if isMember(c) && isNow(request.resource.data.at);
+        allow update, delete: if false;
+      }
+
+      // Notification records double as a lock: the first member to create the record for a
+      // given event sends the email; later attempts fail the create and do nothing.
+      match /notifications/{id} {
+        allow read: if isMember(c);
+        allow create: if isMember(c) && request.resource.data.status == 'pending';
+        allow update: if isMember(c) && request.resource.data.kind == resource.data.kind;
+        allow delete: if false;
+      }
+    }
+  }
+}
