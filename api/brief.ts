@@ -33,8 +33,7 @@ export default handle(async (req, res) => {
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents: [{ role: 'user', parts: [{ text: `Facts:
-${JSON.stringify(facts).slice(0, 12000)}` }] }],
+          contents: [{ role: 'user', parts: [{ text: `Facts:\n${JSON.stringify(facts).slice(0, 12000)}` }] }],
           // Thinking models (2.5 and later) count their reasoning against this limit, so it is generous;
           // the system prompt is what keeps the brief to 3-5 sentences.
           generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
