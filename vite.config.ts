@@ -8,20 +8,36 @@ function devApi(): Plugin {
   return {
     name: 'dev-api',
     configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
+      server.middlewares.use((req, res, next) => {
         const m = req.url?.match(/^\/api\/([a-z]+)$/)
         if (!m) return next()
-        const chunks: Buffer[] = []
-        for await (const c of req) chunks.push(c as Buffer)
-        let body: unknown
-        try { body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : undefined } catch { body = undefined }
-        const mod = await server.ssrLoadModule(`/api/${m[1]}.ts`)
-        const vres = {
-          status(code: number) { res.statusCode = code; return vres },
-          json(data: unknown) { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(data)) },
-          setHeader(n: string, v: string) { res.setHeader(n, v) },
-        }
-        await mod.default({ method: req.method, headers: req.headers, body }, vres)
+        void (async () => {
+          const chunks: Buffer[] = []
+          for await (const c of req) chunks.push(c as Buffer)
+          let body: unknown
+          try {
+            body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : undefined
+          } catch {
+            body = undefined
+          }
+          const mod = (await server.ssrLoadModule(`/api/${m[1]}.ts`)) as {
+            default: (req: unknown, res: unknown) => Promise<void>
+          }
+          const vres = {
+            status(code: number) {
+              res.statusCode = code
+              return vres
+            },
+            json(data: unknown) {
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify(data))
+            },
+            setHeader(n: string, v: string) {
+              res.setHeader(n, v)
+            },
+          }
+          await mod.default({ method: req.method, headers: req.headers, body }, vres)
+        })().catch(next)
       })
     },
   }
@@ -57,6 +73,12 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), devApi(), previewRouting()],
     // No source maps in production. Chunks are split by route and by Firebase SDK (auth vs firestore)
     // through dynamic imports, so no manual chunking is needed.
-    build: { sourcemap: false },
+    build: {
+      sourcemap: false,
+      // The largest chunk is the Firestore SDK (~530 KB). Rollup splits it automatically and it only loads
+      // on signed-in screens (lazy routes). Do not add manualChunks for Firebase: forcing a Firestore chunk
+      // pulls shared Firebase code into it and makes the public pages download it too.
+      chunkSizeWarningLimit: 600,
+    },
   }
 })

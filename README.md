@@ -2,24 +2,24 @@
 
 **Shared medication, appointment and caregiver-handover records for an older adult, their family and their caregivers.**
 
-Live: https://carecircle-pw.vercel.app · Code: https://github.com/srinikesh225/carecircle · Built for the PromptWars × Catalyst challenge *Elderly Care & Medication Management Platform*.
+Live: https://carecircle-pw.vercel.app · Code: https://github.com/srinikesh225/carecircle · Built for the PromptWars × Catalyst challenge _Elderly Care & Medication Management Platform_.
 
-When an older person's care is spread across a spouse, a child in another city and a visiting caregiver, the hard part isn't remembering the tablet. It's knowing whether anyone gave it. CareCircle keeps one shared record per person. A dose recorded on one phone shows up on everyone's screen straight away, along with who recorded it. Doses nobody has recorded are flagged as *not confirmed*, never guessed as "missed". The next caregiver gets a handover built from the records.
+When an older person's care is spread across a spouse, a child in another city and a visiting caregiver, the hard part isn't remembering the tablet. It's knowing whether anyone gave it. CareCircle keeps one shared record per person. A dose recorded on one phone shows up on everyone's screen straight away, along with who recorded it. Doses nobody has recorded are flagged as _not confirmed_, never guessed as "missed". The next caregiver gets a handover built from the records.
 
 ---
 
 ## How it meets the brief
 
-| Challenge asks for | What CareCircle does |
-|---|---|
-| Shared ecosystem for elderly person, caretakers and family | One **Care Circle** per patient. Members join as Patient, Family or Caregiver and see the same live record (Firestore real-time listeners). |
-| Secure, passcode-based access | Account sign-in **plus** a per-circle passcode. Firestore security rules check the passcode server-side, so the app can't be bypassed. The passcode can be rotated and members removed. |
-| View / add / edit / manage medication schedules | Add, edit, stop and restart medications with several daily times. Stopping keeps history intact. Patient and family can edit; caregivers can record doses. |
-| Track adherence | Per-dose status: Taken · Not taken (with reason) · Due · Not confirmed · Later. 7-day adherence chart and full dose history with who recorded each dose. |
-| Monitor upcoming doctor appointments | Appointment list with doctor, place and notes, a 48-hour attention flag, and an email reminder 24 hours before. |
+| Challenge asks for                                                | What CareCircle does                                                                                                                                                                                                             |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared ecosystem for elderly person, caretakers and family        | One **Care Circle** per patient. Members join as Patient, Family or Caregiver and see the same live record (Firestore real-time listeners).                                                                                      |
+| Secure, passcode-based access                                     | Account sign-in **plus** a per-circle passcode. Firestore security rules check the passcode server-side, so the app can't be bypassed. The passcode can be rotated and members removed.                                          |
+| View / add / edit / manage medication schedules                   | Add, edit, stop and restart medications with several daily times. Stopping keeps history intact. Patient and family can edit; caregivers can record doses.                                                                       |
+| Track adherence                                                   | Per-dose status: Taken · Not taken (with reason) · Due · Not confirmed · Later. 7-day adherence chart and full dose history with who recorded each dose.                                                                         |
+| Monitor upcoming doctor appointments                              | Appointment list with doctor, place and notes, a 48-hour attention flag, and an email reminder 24 hours before.                                                                                                                  |
 | Email reminders for missed doses, upcoming doses and appointments | Emails every circle member when a dose passes its 60-minute window unrecorded, and a day before each appointment. Members can also email any alert, a handover or the daily brief on demand. Each email is sent once and logged. |
-| Go beyond a reminder app | **Shift handover**, **early-attention patterns** (e.g. "after-lunch Vitamin D not recorded 3 of the last 7 days"), an **AI daily care brief**, and a shared activity timeline. |
-| Elderly person at the centre of their own decisions | A dedicated large-type **patient view** (one-tap "I took it", read-aloud, notes to the circle). The patient's **own wishes** sit at the top of every member's screen, and the patient has full edit rights over their plan. |
+| Go beyond a reminder app                                          | **Shift handover**, **early-attention patterns** (e.g. "after-lunch Vitamin D not recorded 3 of the last 7 days"), an **AI daily care brief**, and a shared activity timeline.                                                   |
+| Elderly person at the centre of their own decisions               | A dedicated large-type **patient view** (one-tap "I took it", read-aloud, notes to the circle). The patient's **own wishes** sit at the top of every member's screen, and the patient has full edit rights over their plan.      |
 
 ## Features
 
@@ -56,7 +56,7 @@ Vercel serverless functions (api/)
 ```
 
 - **Pure, tested domain core** ([`src/domain/`](src/domain)): dose scheduling, status, adherence, attention rules, handover and the brief facts. It contains no Firebase or React code; `npm test` runs it.
-- **No server secrets beyond the two API keys.** The functions verify Firebase ID tokens against Google's public keys and read Firestore with the *caller's* token, so the security rules still decide access. No service account is involved.
+- **No server secrets beyond the two API keys.** The functions verify Firebase ID tokens against Google's public keys and read Firestore with the _caller's_ token, so the security rules still decide access. No service account is involved.
 - **Email recipients come from the database, never from the request.** The endpoint can only email members of a circle the caller belongs to.
 - **Duplicate-free reminders.** Every email first claims a deterministic record ID in a Firestore transaction. If two members have the app open, only one email goes out.
 
@@ -96,10 +96,10 @@ npm run build      # typecheck + production build
 
 Optional server-side env vars (in `.env.local` for local dev, Vercel project settings for production). See [`.env.example`](.env.example):
 
-| Variable | Effect when missing |
-|---|---|
-| `GEMINI_API_KEY`, `GEMINI_MODEL` | Brief is composed from the records and labelled as such |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Emails are composed and logged as "not sent: email not configured" |
+| Variable                         | Effect when missing                                                |
+| -------------------------------- | ------------------------------------------------------------------ |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Brief is composed from the records and labelled as such            |
+| `RESEND_API_KEY`, `EMAIL_FROM`   | Emails are composed and logged as "not sent: email not configured" |
 
 Deploy the security rules with `firebase deploy --only firestore:rules`.
 

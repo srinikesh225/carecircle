@@ -15,9 +15,13 @@ export function Breadcrumbs({ items, className = '' }: { items: Crumb[]; classNa
           return (
             <li key={`${c.label}-${i}`} className="flex items-center gap-2">
               {c.to && !last ? (
-                <Link to={c.to} className="underline underline-offset-2 hover:text-ink">{c.label}</Link>
+                <Link to={c.to} className="underline underline-offset-2 hover:text-ink">
+                  {c.label}
+                </Link>
               ) : (
-                <span aria-current={last ? 'page' : undefined} className={last ? 'font-bold text-ink' : undefined}>{c.label}</span>
+                <span aria-current={last ? 'page' : undefined} className={last ? 'font-bold text-ink' : undefined}>
+                  {c.label}
+                </span>
               )}
               {!last && <span aria-hidden="true">/</span>}
             </li>

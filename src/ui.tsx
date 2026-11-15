@@ -1,4 +1,13 @@
-import { forwardRef, useId, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import {
+  forwardRef,
+  useId,
+  useState,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react'
 import { Loader2 } from 'lucide-react'
 import type { DoseStatus } from './domain/schedule'
 
@@ -11,7 +20,14 @@ const VARIANT: Record<Variant, string> = {
   danger: 'bg-card text-alert border border-line hover:border-alert',
 }
 
-export function Button({ variant = 'primary', size = 'md', busy, className = '', children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' | 'lg'; busy?: boolean }) {
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  busy,
+  className = '',
+  children,
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' | 'lg'; busy?: boolean }) {
   const sz = size === 'sm' ? 'px-3.5 py-1.5 text-sm' : size === 'lg' ? 'px-6 py-3.5 text-lg' : 'px-5 py-2.5'
   return (
     <button
@@ -25,19 +41,36 @@ export function Button({ variant = 'primary', size = 'md', busy, className = '',
   )
 }
 
-export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: (id: string, describedBy?: string) => ReactNode }) {
+export function Field({
+  label,
+  hint,
+  error,
+  children,
+}: {
+  label: string
+  hint?: string
+  error?: string
+  children: (id: string, describedBy?: string) => ReactNode
+}) {
   const id = useId()
   const hintId = hint || error ? `${id}-hint` : undefined
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="font-bold text-[15px]">{label}</label>
+      <label htmlFor={id} className="font-bold text-[15px]">
+        {label}
+      </label>
       {children(id, hintId)}
-      {(hint || error) && <p id={hintId} className={`text-sm ${error ? 'text-alert' : 'text-ink-2'}`}>{error ?? hint}</p>}
+      {(hint || error) && (
+        <p id={hintId} className={`text-sm ${error ? 'text-alert' : 'text-ink-2'}`}>
+          {error ?? hint}
+        </p>
+      )}
     </div>
   )
 }
 
-const control = 'w-full rounded-md border border-line bg-white px-3.5 py-2.5 text-ink placeholder:text-ink-2/70 focus:border-brand'
+const control =
+  'w-full rounded-md border border-line bg-white px-3.5 py-2.5 text-ink placeholder:text-ink-2/70 focus:border-brand'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(p, ref) {
   return <input ref={ref} {...p} className={`${control} ${p.className ?? ''}`} />
@@ -49,11 +82,25 @@ export function Select(p: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select {...p} className={`${control} ${p.className ?? ''}`} />
 }
 
-export function Section({ title, action, children, className = '', id }: { title: string; action?: ReactNode; children: ReactNode; className?: string; id?: string }) {
+export function Section({
+  title,
+  action,
+  children,
+  className = '',
+  id,
+}: {
+  title: string
+  action?: ReactNode
+  children: ReactNode
+  className?: string
+  id?: string
+}) {
   return (
     <section className={`rounded-2xl border border-line bg-card ${className}`} aria-labelledby={id}>
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4 sm:px-6">
-        <h2 id={id} className="font-display text-xl font-bold">{title}</h2>
+        <h2 id={id} className="font-display text-xl font-bold">
+          {title}
+        </h2>
         {action}
       </header>
       <div className="p-5 sm:p-6">{children}</div>
@@ -70,7 +117,13 @@ const STATUS: Record<DoseStatus, { label: string; cls: string }> = {
 }
 export function StatusBadge({ status, large }: { status: DoseStatus; large?: boolean }) {
   const s = STATUS[status]
-  return <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 font-bold ${large ? 'text-base' : 'text-sm'} ${s.cls}`}>{s.label}</span>
+  return (
+    <span
+      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 font-bold ${large ? 'text-base' : 'text-sm'} ${s.cls}`}
+    >
+      {s.label}
+    </span>
+  )
 }
 
 export function Empty({ children }: { children: ReactNode }) {
@@ -79,7 +132,11 @@ export function Empty({ children }: { children: ReactNode }) {
 
 export function ErrorText({ error }: { error: string | null }) {
   if (!error) return null
-  return <p role="alert" className="rounded-md border border-alert/30 bg-alert-soft px-3 py-2 text-alert">{error}</p>
+  return (
+    <p role="alert" className="rounded-md border border-alert/30 bg-alert-soft px-3 py-2 text-alert">
+      {error}
+    </p>
+  )
 }
 
 /** Runs an async action, exposing busy + a human error message. */

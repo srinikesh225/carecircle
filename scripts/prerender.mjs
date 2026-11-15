@@ -13,7 +13,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'dist')
 const ssrDir = join(root, 'dist-ssr')
-const { render, PUBLIC_PAGES, APP_SHELL, SITE_URL, headTags } = await import(pathToFileURL(join(ssrDir, 'prerender.js')).href)
+const { render, PUBLIC_PAGES, APP_SHELL, SITE_URL, headTags } = await import(
+  pathToFileURL(join(ssrDir, 'prerender.js')).href
+)
 
 const template = readFileSync(join(dist, 'index.html'), 'utf8')
 const START = '<!--seo:start-->'
@@ -23,7 +25,8 @@ if (!template.includes(START) || !template.includes(END) || !template.includes('
 }
 
 function page(meta, html) {
-  const head = template.slice(0, template.indexOf(START)) + headTags(meta) + template.slice(template.indexOf(END) + END.length)
+  const head =
+    template.slice(0, template.indexOf(START)) + headTags(meta) + template.slice(template.indexOf(END) + END.length)
   return head.replace('<div id="root"></div>', `<div id="root">${html}</div>`)
 }
 

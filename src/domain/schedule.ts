@@ -52,7 +52,10 @@ export function fmtTime(time: string): string {
   return `${h12}:${pad(mm)} ${suffix}`
 }
 
-export function fmtDate(date: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }): string {
+export function fmtDate(
+  date: string,
+  opts: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' },
+): string {
   return at(date, '12:00').toLocaleDateString('en-IN', opts)
 }
 
@@ -87,7 +90,12 @@ export function indexLogs(logs: DoseLog[]): Map<string, DoseLog> {
 }
 
 /** Every scheduled dose for one day, in time order, with its current status. */
-export function scheduleFor(date: string, meds: Medication[], logs: DoseLog[] | Map<string, DoseLog>, now: Date): DoseView[] {
+export function scheduleFor(
+  date: string,
+  meds: Medication[],
+  logs: DoseLog[] | Map<string, DoseLog>,
+  now: Date,
+): DoseView[] {
   const byKey = logs instanceof Map ? logs : indexLogs(logs)
   const views: DoseView[] = []
   for (const med of meds) {

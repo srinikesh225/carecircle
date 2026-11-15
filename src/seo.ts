@@ -4,7 +4,12 @@ import { useEffect } from 'react'
 export const SITE_URL = 'https://carecircle-pw.vercel.app'
 export const SITE_NAME = 'CareCircle'
 export const REPO_URL = 'https://github.com/srinikesh225/carecircle'
-export const OG_IMAGE = { path: '/og-image.png', width: 1200, height: 630, alt: 'CareCircle: shared care for the people who raised you. A sample day showing a dose taken, one not confirmed and one still to come.' }
+export const OG_IMAGE = {
+  path: '/og-image.png',
+  width: 1200,
+  height: 630,
+  alt: 'CareCircle: shared care for the people who raised you. A sample day showing a dose taken, one not confirmed and one still to come.',
+}
 
 export interface PageMeta {
   path: string
@@ -28,14 +33,16 @@ export const PUBLIC_PAGES = {
   privacy: {
     path: '/privacy',
     title: 'Privacy Policy | CareCircle',
-    description: 'What CareCircle stores about a Care Circle, who can see it, which services process it, and how to remove it.',
+    description:
+      'What CareCircle stores about a Care Circle, who can see it, which services process it, and how to remove it.',
     index: true,
     crumbs: [{ name: 'Privacy Policy', path: '/privacy' }],
   },
   terms: {
     path: '/terms',
     title: 'Terms of Use | CareCircle',
-    description: 'The terms for using CareCircle, including that it is not medical advice and that email reminders are best-effort.',
+    description:
+      'The terms for using CareCircle, including that it is not medical advice and that email reminders are best-effort.',
     index: true,
     crumbs: [{ name: 'Terms of Use', path: '/terms' }],
   },
@@ -121,7 +128,8 @@ export function headTags(page: PageMeta): string {
       `<meta name="twitter:image:alt" content="${esc(OG_IMAGE.alt)}" />`,
     )
   }
-  for (const data of jsonLd(page)) tags.push(`<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`)
+  for (const data of jsonLd(page))
+    tags.push(`<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`)
   return tags.join('\n    ')
 }
 
@@ -147,8 +155,23 @@ export function usePageMeta(meta: { title: string; description?: string; path?: 
   useEffect(() => {
     document.title = title
     // Signed-in screens share the app description so a public page's text never lingers after navigation.
-    setMeta('meta[name="description"]', () => Object.assign(document.createElement('meta'), { name: 'description' }), 'content', description ?? APP_SHELL.description)
-    setMeta('meta[name="robots"]', () => Object.assign(document.createElement('meta'), { name: 'robots' }), 'content', index ? 'index, follow' : 'noindex, follow')
-    setMeta('link[rel="canonical"]', () => Object.assign(document.createElement('link'), { rel: 'canonical' }), 'href', index && path ? `${SITE_URL}${path}` : null)
+    setMeta(
+      'meta[name="description"]',
+      () => Object.assign(document.createElement('meta'), { name: 'description' }),
+      'content',
+      description ?? APP_SHELL.description,
+    )
+    setMeta(
+      'meta[name="robots"]',
+      () => Object.assign(document.createElement('meta'), { name: 'robots' }),
+      'content',
+      index ? 'index, follow' : 'noindex, follow',
+    )
+    setMeta(
+      'link[rel="canonical"]',
+      () => Object.assign(document.createElement('link'), { rel: 'canonical' }),
+      'href',
+      index && path ? `${SITE_URL}${path}` : null,
+    )
   }, [title, description, path, index])
 }

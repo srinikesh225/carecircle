@@ -11,7 +11,8 @@ Rules you must follow:
 - Warm, plain English, 3 to 5 sentences, no headings, no lists, no markdown. Refer to the person by first name.`
 
 /** Phrases that would mean the model drifted into advice. If present we fall back to the deterministic brief. */
-const UNSAFE = /\b(increase|decrease|reduce|double|halve|stop taking|skip the|adjust|diagnos|likely has|could indicate|suggests? (that )?(he|she|they) (has|have))\b/i
+const UNSAFE =
+  /\b(increase|decrease|reduce|double|halve|stop taking|skip the|adjust|diagnos|likely has|could indicate|suggests? (that )?(he|she|they) (has|have))\b/i
 
 /**
  * Tried in order. Google retires models for new users and sheds load with 503s, so a busy, missing or slow
@@ -23,7 +24,9 @@ const DEFAULT_MODELS = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-
 const PER_ATTEMPT_MS = 10_000
 const TOTAL_BUDGET_MS = 25_000
 
-type GeminiResponse = { candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
+type GeminiResponse = {
+  candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[]
+}
 
 async function generate(model: string, key: string, facts: BriefFacts, timeoutMs: number): Promise<string> {
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -45,7 +48,11 @@ async function generate(model: string, key: string, facts: BriefFacts, timeoutMs
   }
   const data = (await r.json()) as GeminiResponse
   const cand = data.candidates?.[0]
-  const text = cand?.content?.parts?.filter((p) => !p.thought).map((p) => p.text ?? '').join('').trim()
+  const text = cand?.content?.parts
+    ?.filter((p) => !p.thought)
+    .map((p) => p.text ?? '')
+    .join('')
+    .trim()
   if (!text) throw new Error(`no text (finishReason: ${cand?.finishReason ?? 'none'})`)
   return text
 }
@@ -53,14 +60,20 @@ async function generate(model: string, key: string, facts: BriefFacts, timeoutMs
 export default handle(async (req, res) => {
   const { uid, token } = await verifyUser(req)
   const body = (req.body ?? {}) as { circleId?: string; facts?: BriefFacts }
-  if (!body.circleId || !body.facts || typeof body.facts.patientName !== 'string') throw new HttpError(400, 'Missing records.')
+  if (!body.circleId || !body.facts || typeof body.facts.patientName !== 'string')
+    throw new HttpError(400, 'Missing records.')
   const members = await circleMembers(body.circleId, token)
   if (!members.some((m) => m.uid === uid)) throw new HttpError(403, 'You are not a member of this Care Circle.')
 
   const facts = body.facts
   const fallback = composeBrief(facts)
   const key = process.env.GEMINI_API_KEY
-  if (!key) return res.status(200).json({ source: 'records', text: fallback, note: 'AI is not configured on this deployment, so this brief was composed directly from the records.' })
+  if (!key)
+    return res.status(200).json({
+      source: 'records',
+      text: fallback,
+      note: 'AI is not configured on this deployment, so this brief was composed directly from the records.',
+    })
 
   const models = [...new Set([process.env.GEMINI_MODEL, ...DEFAULT_MODELS].filter((m): m is string => Boolean(m)))]
   const deadline = Date.now() + TOTAL_BUDGET_MS
@@ -73,15 +86,28 @@ export default handle(async (req, res) => {
       const text = await generate(model, key, facts, Math.min(PER_ATTEMPT_MS, remaining))
       if (failures.length) console.warn('[brief] earlier models failed:', failures.join(' | '))
       if (UNSAFE.test(text)) {
-        return res.status(200).json({ source: 'records', text: fallback, note: 'The AI draft included advice-like wording, so it was discarded and this brief was composed from the records instead.' })
+        return res.status(200).json({
+          source: 'records',
+          text: fallback,
+          note: 'The AI draft included advice-like wording, so it was discarded and this brief was composed from the records instead.',
+        })
       }
       return res.status(200).json({ source: 'gemini', model, text })
     } catch (e) {
-      const msg = e instanceof Error ? (e.name === 'TimeoutError' || e.name === 'AbortError' ? 'timed out' : e.message) : String(e)
+      const msg =
+        e instanceof Error
+          ? e.name === 'TimeoutError' || e.name === 'AbortError'
+            ? 'timed out'
+            : e.message
+          : String(e)
       failures.push(`${model}: ${msg}`)
     }
   }
 
   console.error('[brief] all models failed, using records fallback:', failures.join(' | '))
-  return res.status(200).json({ source: 'records', text: fallback, note: 'The AI service did not respond, so this brief was composed directly from the records.' })
+  return res.status(200).json({
+    source: 'records',
+    text: fallback,
+    note: 'The AI service did not respond, so this brief was composed directly from the records.',
+  })
 })

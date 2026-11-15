@@ -3,7 +3,8 @@ import { circleMembers, handle, HttpError, verifyUser } from './_lib/auth.js'
 /** RFC 2606 / 6761 reserved names: these addresses can never receive mail, so they are skipped. */
 const RESERVED_TLD = /\.(test|example|invalid|localhost)$/i
 
-const escape = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+const escape = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 
 /**
  * Emails every member of the caller's circle. Recipients come from the database (read with the
@@ -19,14 +20,20 @@ export default handle(async (req, res) => {
   const members = await circleMembers(body.circleId, token)
   if (!members.some((m) => m.uid === uid)) throw new HttpError(403, 'You are not a member of this Care Circle.')
   const recipients = [...new Set(members.map((m) => m.email).filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)))]
-  if (recipients.length === 0) return res.status(200).json({ status: 'failed', recipients, detail: 'No member has an email address.' })
+  if (recipients.length === 0)
+    return res.status(200).json({ status: 'failed', recipients, detail: 'No member has an email address.' })
 
   const key = process.env.RESEND_API_KEY
   if (!key) {
-    return res.status(200).json({ status: 'not-configured', recipients, detail: 'Email service is not configured on this deployment, so nothing was sent.' })
+    return res.status(200).json({
+      status: 'not-configured',
+      recipients,
+      detail: 'Email service is not configured on this deployment, so nothing was sent.',
+    })
   }
 
-  const link = typeof body.appUrl === 'string' && /^https:\/\/[\w.-]+(\/[\w/-]*)?$/.test(body.appUrl) ? body.appUrl : null
+  const link =
+    typeof body.appUrl === 'string' && /^https:\/\/[\w.-]+(\/[\w/-]*)?$/.test(body.appUrl) ? body.appUrl : null
   const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5;color:#151915">
 <p style="white-space:pre-line">${escape(text)}</p>
 ${link ? `<p><a href="${escape(link)}" style="color:#3e5c2b">Open CareCircle</a></p>` : ''}

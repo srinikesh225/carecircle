@@ -38,16 +38,39 @@ export function demoSeed(batch: WriteBatch, circleId: string, actor: Actor) {
     const ref = doc(c('medications'))
     ids[m.key] = ref.id
     batch.set(ref, {
-      name: m.name, dosage: m.dosage, instructions: m.instructions, times: m.times,
-      active: true, startDate: start, endDate: null, updatedAt: now.getTime(), updatedByName: 'Priya (sample)',
+      name: m.name,
+      dosage: m.dosage,
+      instructions: m.instructions,
+      times: m.times,
+      active: true,
+      startDate: start,
+      endDate: null,
+      updatedAt: now.getTime(),
+      updatedByName: 'Priya (sample)',
     })
   }
 
-  const put = (date: string, key: string, time: string, status: 'taken' | 'skipped', byName: string, role: 'patient' | 'caregiver' | 'family', reason = '') => {
+  const put = (
+    date: string,
+    key: string,
+    time: string,
+    status: 'taken' | 'skipped',
+    byName: string,
+    role: 'patient' | 'caregiver' | 'family',
+    reason = '',
+  ) => {
     const med = MEDS.find((m) => m.key === key)!
     batch.set(doc(c('doseLogs'), doseKey(date, ids[key], time)), {
-      medicationId: ids[key], medicationName: med.name, date, time, status, reason,
-      byUid: actor.uid, byName, byRole: role, at: at(date, time).getTime() + 12 * 60_000,
+      medicationId: ids[key],
+      medicationName: med.name,
+      date,
+      time,
+      status,
+      reason,
+      byUid: actor.uid,
+      byName,
+      byRole: role,
+      at: at(date, time).getTime() + 12 * 60_000,
     })
   }
 
@@ -69,18 +92,40 @@ export function demoSeed(batch: WriteBatch, circleId: string, actor: Actor) {
 
   const tomorrow = addDays(today, 1)
   batch.set(doc(c('appointments')), {
-    title: 'Cardiology review', doctor: 'Dr. Meera Sharma (sample)', location: 'City Heart Clinic, OPD 3 (sample)',
-    date: tomorrow, time: '11:00', notes: 'Bring the last two BP readings and current medicine list.', createdByName: 'Priya (sample)',
+    title: 'Cardiology review',
+    doctor: 'Dr. Meera Sharma (sample)',
+    location: 'City Heart Clinic, OPD 3 (sample)',
+    date: tomorrow,
+    time: '11:00',
+    notes: 'Bring the last two BP readings and current medicine list.',
+    createdByName: 'Priya (sample)',
   })
   batch.set(doc(c('appointments')), {
-    title: 'HbA1c blood test', doctor: '', location: 'Diagnostics lab (sample)',
-    date: addDays(today, 6), time: '08:00', notes: 'Fasting from 10 PM the night before.', createdByName: 'Priya (sample)',
+    title: 'HbA1c blood test',
+    doctor: '',
+    location: 'Diagnostics lab (sample)',
+    date: addDays(today, 6),
+    time: '08:00',
+    notes: 'Fasting from 10 PM the night before.',
+    createdByName: 'Priya (sample)',
   })
 
   const ago = (h: number) => now.getTime() - h * 3_600_000
   const note = (kind: 'note' | 'handover', text: string, authorName: string, role: string, atMs: number) =>
     batch.set(doc(c('notes')), { kind, text, authorUid: actor.uid, authorName, authorRole: role, at: atMs })
-  note('note', 'Ramesh mentioned the after-lunch tablet is easy to forget when he naps.', 'Anjali (caregiver, sample)', 'caregiver', ago(26))
+  note(
+    'note',
+    'Ramesh mentioned the after-lunch tablet is easy to forget when he naps.',
+    'Anjali (caregiver, sample)',
+    'caregiver',
+    ago(26),
+  )
   note('handover', 'Shift handover signed off.', 'Ravi (caregiver, sample)', 'caregiver', ago(20))
-  note('note', 'Morning walk done, ate a full breakfast before tablets.', 'Anjali (caregiver, sample)', 'caregiver', Math.min(ago(1), at(today, '09:15').getTime()))
+  note(
+    'note',
+    'Morning walk done, ate a full breakfast before tablets.',
+    'Anjali (caregiver, sample)',
+    'caregiver',
+    Math.min(ago(1), at(today, '09:15').getTime()),
+  )
 }

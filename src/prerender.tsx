@@ -2,7 +2,7 @@
 // real content, its own head tags and structured data. Must stay free of browser-only modules.
 import { StrictMode } from 'react'
 import { renderToString } from 'react-dom/server'
-import { StaticRouter } from 'react-router-dom/server'
+import { StaticRouter } from 'react-router-dom'
 import { AuthProvider } from './auth'
 import { AppRoutes } from './routes'
 

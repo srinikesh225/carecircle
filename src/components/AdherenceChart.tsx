@@ -15,7 +15,10 @@ export function AdherenceChart({ days }: { days: DayAdherence[] }) {
           return (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
               <span className="tabular text-sm font-bold">{d.pct === null ? '–' : `${d.pct}%`}</span>
-              <div className="flex w-full max-w-[44px] flex-col-reverse overflow-hidden rounded-sm bg-paper" style={{ height: H }}>
+              <div
+                className="flex w-full max-w-[44px] flex-col-reverse overflow-hidden rounded-sm bg-paper"
+                style={{ height: H }}
+              >
                 <div className="bg-brand" style={{ height: seg(d.taken) }} />
                 <div className="bg-warn" style={{ height: seg(d.skipped) }} />
                 <div className="bg-alert" style={{ height: seg(d.unconfirmed) }} />
@@ -34,20 +37,39 @@ export function AdherenceChart({ days }: { days: DayAdherence[] }) {
       </figcaption>
       {/* Tables ignore sr-only's 1px width, so the wrapper carries it. */}
       <div className="sr-only">
-      <table>
-        <caption>Doses by day for the last 7 days</caption>
-        <thead><tr><th>Day</th><th>Scheduled</th><th>Taken</th><th>Not taken</th><th>Not confirmed</th><th>Percent taken</th></tr></thead>
-        <tbody>
-          {days.map((d) => (
-            <tr key={d.date}><td>{fmtDate(d.date)}</td><td>{d.scheduled}</td><td>{d.taken}</td><td>{d.skipped}</td><td>{d.unconfirmed}</td><td>{d.pct ?? 'n/a'}</td></tr>
-          ))}
-        </tbody>
-      </table>
+        <table>
+          <caption>Doses by day for the last 7 days</caption>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Scheduled</th>
+              <th>Taken</th>
+              <th>Not taken</th>
+              <th>Not confirmed</th>
+              <th>Percent taken</th>
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((d) => (
+              <tr key={d.date}>
+                <td>{fmtDate(d.date)}</td>
+                <td>{d.scheduled}</td>
+                <td>{d.taken}</td>
+                <td>{d.skipped}</td>
+                <td>{d.unconfirmed}</td>
+                <td>{d.pct ?? 'n/a'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </figure>
   )
 }
 
 const Key = ({ cls, label }: { cls: string; label: string }) => (
-  <span className="inline-flex items-center gap-1.5"><span className={`h-3 w-3 rounded-sm ${cls}`} />{label}</span>
+  <span className="inline-flex items-center gap-1.5">
+    <span className={`h-3 w-3 rounded-sm ${cls}`} />
+    {label}
+  </span>
 )

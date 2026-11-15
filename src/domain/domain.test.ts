@@ -7,10 +7,30 @@ const NOW = new Date(2026, 10, 15, 14, 30) // 15 Nov 2026, 2:30 PM local
 const TODAY = '2026-11-15'
 
 const med = (id: string, name: string, times: string[], extra: Partial<Medication> = {}): Medication => ({
-  id, name, dosage: '1 tablet', instructions: '', times, active: true, startDate: '2026-11-01', endDate: null, updatedAt: 0, updatedByName: 'x', ...extra,
+  id,
+  name,
+  dosage: '1 tablet',
+  instructions: '',
+  times,
+  active: true,
+  startDate: '2026-11-01',
+  endDate: null,
+  updatedAt: 0,
+  updatedByName: 'x',
+  ...extra,
 })
 const log = (m: Medication, date: string, time: string, status: 'taken' | 'skipped', atMs = 0): DoseLog => ({
-  id: doseKey(date, m.id, time), medicationId: m.id, medicationName: m.name, date, time, status, reason: '', byUid: 'u', byName: 'Anjali', byRole: 'caregiver', at: atMs,
+  id: doseKey(date, m.id, time),
+  medicationId: m.id,
+  medicationName: m.name,
+  date,
+  time,
+  status,
+  reason: '',
+  byUid: 'u',
+  byName: 'Anjali',
+  byRole: 'caregiver',
+  at: atMs,
 })
 
 const bp = med('bp', 'Amlodipine', ['08:00', '13:00'])
@@ -78,8 +98,26 @@ describe('early attention', () => {
 
   it('surfaces appointments in the next 48 hours only', () => {
     const appts: Appointment[] = [
-      { id: 'a1', title: 'Cardiology review', doctor: 'Dr. Sharma', location: '', date: addDays(TODAY, 1), time: '11:00', notes: '', createdByName: 'x' },
-      { id: 'a2', title: 'Eye check', doctor: '', location: '', date: addDays(TODAY, 5), time: '11:00', notes: '', createdByName: 'x' },
+      {
+        id: 'a1',
+        title: 'Cardiology review',
+        doctor: 'Dr. Sharma',
+        location: '',
+        date: addDays(TODAY, 1),
+        time: '11:00',
+        notes: '',
+        createdByName: 'x',
+      },
+      {
+        id: 'a2',
+        title: 'Eye check',
+        doctor: '',
+        location: '',
+        date: addDays(TODAY, 5),
+        time: '11:00',
+        notes: '',
+        createdByName: 'x',
+      },
     ]
     const keys = attentionItems([], [], appts, NOW).map((i) => i.key)
     expect(keys).toEqual(['appt:a1'])
@@ -90,9 +128,33 @@ describe('handover', () => {
   it('covers everything since the last signed-off handover', () => {
     const t = (h: number) => new Date(2026, 10, 15, h).getTime()
     const notes: CareNote[] = [
-      { id: 'h1', kind: 'handover', text: '...', authorUid: 'a', authorName: 'Ravi', authorRole: 'caregiver', at: t(7) },
-      { id: 'n0', kind: 'note', text: 'old note', authorUid: 'a', authorName: 'Ravi', authorRole: 'caregiver', at: t(6) },
-      { id: 'n1', kind: 'note', text: 'Asked for water with tablets', authorUid: 'b', authorName: 'Anjali', authorRole: 'caregiver', at: t(9) },
+      {
+        id: 'h1',
+        kind: 'handover',
+        text: '...',
+        authorUid: 'a',
+        authorName: 'Ravi',
+        authorRole: 'caregiver',
+        at: t(7),
+      },
+      {
+        id: 'n0',
+        kind: 'note',
+        text: 'old note',
+        authorUid: 'a',
+        authorName: 'Ravi',
+        authorRole: 'caregiver',
+        at: t(6),
+      },
+      {
+        id: 'n1',
+        kind: 'note',
+        text: 'Asked for water with tablets',
+        authorUid: 'b',
+        authorName: 'Anjali',
+        authorRole: 'caregiver',
+        at: t(9),
+      },
     ]
     const logs = [log(bp, TODAY, '08:00', 'taken', t(8))]
     const h = buildHandover({ meds: [bp, vitd], logs, notes, appointments: [], now: NOW })
@@ -107,10 +169,28 @@ describe('handover', () => {
 describe('daily brief fallback', () => {
   it('states only recorded facts and calls unconfirmed doses unconfirmed', () => {
     const facts = briefFacts({
-      patient: { name: 'Ramesh Kumar', age: 72, conditions: '', allergies: '', emergencyName: '', emergencyPhone: '', preferences: '' },
+      patient: {
+        name: 'Ramesh Kumar',
+        age: 72,
+        conditions: '',
+        allergies: '',
+        emergencyName: '',
+        emergencyPhone: '',
+        preferences: '',
+      },
       meds: [bp, vitd],
       logs: [log(bp, TODAY, '08:00', 'taken')],
-      notes: [{ id: 'n', kind: 'note', text: 'Ate well.', authorUid: 'a', authorName: 'Anjali', authorRole: 'caregiver', at: NOW.getTime() - 60_000 }],
+      notes: [
+        {
+          id: 'n',
+          kind: 'note',
+          text: 'Ate well.',
+          authorUid: 'a',
+          authorName: 'Anjali',
+          authorRole: 'caregiver',
+          at: NOW.getTime() - 60_000,
+        },
+      ],
       appointments: [],
       now: NOW,
     })

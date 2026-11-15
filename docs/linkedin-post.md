@@ -8,7 +8,7 @@ When you paste this into LinkedIn, type "@Makers Need More" and pick the page fr
 
 When an older parent's care is shared between family and a caregiver, the tablets usually aren't the hard part. The phone calls are: "Did she take the afternoon one?" "I think the caregiver gave it?" "Who's taking her to the cardiologist tomorrow?"
 
-For the PromptWars × Catalyst round 2 challenge, *Elderly Care & Medication Management Platform*, I built CareCircle, a shared care record for an older adult, their family and their caregivers.
+For the PromptWars × Catalyst round 2 challenge, _Elderly Care & Medication Management Platform_, I built CareCircle, a shared care record for an older adult, their family and their caregivers.
 
 What it does:
 → One circle per person. Family and caregivers join with an account plus that circle's passcode, and the database rules enforce it.

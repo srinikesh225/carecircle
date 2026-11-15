@@ -10,7 +10,13 @@ import { notifyCircle } from '../reminders'
 
 export default function Handover() {
   const { data, now, circleId, actor } = useCircleCtx()
-  const h = buildHandover({ meds: data.medications, logs: data.logs, notes: data.notes, appointments: data.appointments, now })
+  const h = buildHandover({
+    meds: data.medications,
+    logs: data.logs,
+    notes: data.notes,
+    appointments: data.appointments,
+    now,
+  })
   const text = handoverText(h, data.patient.name)
   const [msg, setMsg] = useState<string | null>(null)
   const sign = useAction()
@@ -24,52 +30,130 @@ export default function Handover() {
     if (ok) setMsg('Handover signed off. The next report starts from now.')
   }
   async function email() {
-    const s = await mail.run(() => notifyCircle(circleId, `handover_${Date.now()}`, 'handover', `Shift handover for ${data.patient.name.split(' ')[0]}`, `${text}\n\nPrepared by ${actor.name} (${ROLE_LABEL[actor.role]}).`, actor.name))
-    setMsg(s === 'sent' ? 'Handover emailed to the circle.' : s === 'not-configured' ? 'Email is not configured on this deployment, so nothing was sent.' : 'Email could not be sent.')
+    const s = await mail.run(() =>
+      notifyCircle(
+        circleId,
+        `handover_${Date.now()}`,
+        'handover',
+        `Shift handover for ${data.patient.name.split(' ')[0]}`,
+        `${text}\n\nPrepared by ${actor.name} (${ROLE_LABEL[actor.role]}).`,
+        actor.name,
+      ),
+    )
+    setMsg(
+      s === 'sent'
+        ? 'Handover emailed to the circle.'
+        : s === 'not-configured'
+          ? 'Email is not configured on this deployment, so nothing was sent.'
+          : 'Email could not be sent.',
+    )
   }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       <Section title="Shift handover" id="handover">
         <p className="text-ink-2">
-          Everything recorded since {h.sinceLabel}{h.previousBy ? `, when ${h.previousBy} last signed off` : ' (last 12 hours)'}. Built from the records, so nothing needs re-typing.
+          Everything recorded since {h.sinceLabel}
+          {h.previousBy ? `, when ${h.previousBy} last signed off` : ' (last 12 hours)'}. Built from the records, so
+          nothing needs re-typing.
         </p>
 
         <Block title="Needs attention now">
-          {h.outstanding.length === 0 ? <p>Nothing outstanding.</p> : h.outstanding.map((v) => (
-            <Line key={v.key} left={fmtTime(v.time)}>{v.medication.name} {v.medication.dosage} <StatusBadge status={v.status} /></Line>
-          ))}
+          {h.outstanding.length === 0 ? (
+            <p>Nothing outstanding.</p>
+          ) : (
+            h.outstanding.map((v) => (
+              <Line key={v.key} left={fmtTime(v.time)}>
+                {v.medication.name} {v.medication.dosage} <StatusBadge status={v.status} />
+              </Line>
+            ))
+          )}
         </Block>
         <Block title="Recorded during this period">
-          {h.recorded.length === 0 ? <p>No doses recorded.</p> : h.recorded.map((l) => (
-            <Line key={l.id} left={l.date === dayKey(now) ? fmtTime(l.time) : `${fmtDate(l.date, { weekday: 'short' })} ${fmtTime(l.time)}`}>
-              {l.medicationName} <StatusBadge status={l.status} /> <span className="text-ink-2">by {l.byName}{l.reason ? `: ${l.reason}` : ''}</span>
-            </Line>
-          ))}
+          {h.recorded.length === 0 ? (
+            <p>No doses recorded.</p>
+          ) : (
+            h.recorded.map((l) => (
+              <Line
+                key={l.id}
+                left={
+                  l.date === dayKey(now)
+                    ? fmtTime(l.time)
+                    : `${fmtDate(l.date, { weekday: 'short' })} ${fmtTime(l.time)}`
+                }
+              >
+                {l.medicationName} <StatusBadge status={l.status} />{' '}
+                <span className="text-ink-2">
+                  by {l.byName}
+                  {l.reason ? `: ${l.reason}` : ''}
+                </span>
+              </Line>
+            ))
+          )}
         </Block>
         <Block title="Still to come today">
-          {h.nextDoses.length === 0 ? <p>No more doses today.</p> : h.nextDoses.map((v) => (
-            <Line key={v.key} left={fmtTime(v.time)}>{v.medication.name} {v.medication.dosage}{v.medication.instructions ? <span className="text-ink-2"> · {v.medication.instructions}</span> : null}</Line>
-          ))}
+          {h.nextDoses.length === 0 ? (
+            <p>No more doses today.</p>
+          ) : (
+            h.nextDoses.map((v) => (
+              <Line key={v.key} left={fmtTime(v.time)}>
+                {v.medication.name} {v.medication.dosage}
+                {v.medication.instructions ? <span className="text-ink-2"> · {v.medication.instructions}</span> : null}
+              </Line>
+            ))
+          )}
         </Block>
         <Block title="Care notes">
-          {h.notes.length === 0 ? <p>No notes in this period.</p> : h.notes.map((n) => (
-            <Line key={n.id} left={new Date(n.at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}><strong>{n.authorName}:</strong> {n.text}</Line>
-          ))}
+          {h.notes.length === 0 ? (
+            <p>No notes in this period.</p>
+          ) : (
+            h.notes.map((n) => (
+              <Line
+                key={n.id}
+                left={new Date(n.at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
+              >
+                <strong>{n.authorName}:</strong> {n.text}
+              </Line>
+            ))
+          )}
         </Block>
         <Block title="Appointments, next 3 days">
-          {h.appointments.length === 0 ? <p>None.</p> : h.appointments.map((a) => (
-            <Line key={a.id} left={fmtDate(a.date, { weekday: 'short' })}>{fmtTime(a.time)} {a.title}{a.doctor ? ` with ${a.doctor}` : ''}</Line>
-          ))}
+          {h.appointments.length === 0 ? (
+            <p>None.</p>
+          ) : (
+            h.appointments.map((a) => (
+              <Line key={a.id} left={fmtDate(a.date, { weekday: 'short' })}>
+                {fmtTime(a.time)} {a.title}
+                {a.doctor ? ` with ${a.doctor}` : ''}
+              </Line>
+            ))
+          )}
         </Block>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <Button onClick={signOff} busy={sign.busy}>Sign off my shift</Button>
-          <Button variant="secondary" onClick={email} busy={mail.busy}><Mail className="h-4 w-4" aria-hidden />Email handover</Button>
-          <Button variant="secondary" onClick={() => navigator.clipboard.writeText(text).then(() => setMsg('Copied as text.'))}><ClipboardCopy className="h-4 w-4" aria-hidden />Copy as text</Button>
+          <Button onClick={signOff} busy={sign.busy}>
+            Sign off my shift
+          </Button>
+          <Button variant="secondary" onClick={email} busy={mail.busy}>
+            <Mail className="h-4 w-4" aria-hidden />
+            Email handover
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => navigator.clipboard.writeText(text).then(() => setMsg('Copied as text.'))}
+          >
+            <ClipboardCopy className="h-4 w-4" aria-hidden />
+            Copy as text
+          </Button>
         </div>
-        <div className="mt-3"><ErrorText error={sign.error ?? mail.error} /></div>
-        {msg && <p role="status" className="mt-3 font-bold text-brand">{msg}</p>}
+        <div className="mt-3">
+          <ErrorText error={sign.error ?? mail.error} />
+        </div>
+        {msg && (
+          <p role="status" className="mt-3 font-bold text-brand">
+            {msg}
+          </p>
+        )}
       </Section>
 
       <Notes />
@@ -84,7 +168,10 @@ const Block = ({ title, children }: { title: string; children: React.ReactNode }
   </div>
 )
 const Line = ({ left, children }: { left: string; children: React.ReactNode }) => (
-  <p className="flex gap-3"><span className="tabular w-28 shrink-0 text-ink-2">{left}</span><span className="min-w-0">{children}</span></p>
+  <p className="flex gap-3">
+    <span className="tabular w-28 shrink-0 text-ink-2">{left}</span>
+    <span className="min-w-0">{children}</span>
+  </p>
 )
 
 function Notes() {
@@ -103,19 +190,28 @@ function Notes() {
   return (
     <Section title="Care notes" id="notes">
       <form onSubmit={submit} className="flex flex-col gap-2">
-        <label htmlFor="note" className="text-ink-2">Observations for the next person: appetite, mood, anything unusual.</label>
+        <label htmlFor="note" className="text-ink-2">
+          Observations for the next person: appetite, mood, anything unusual.
+        </label>
         <Textarea id="note" value={text} onChange={(e) => setText(e.target.value)} />
         <ErrorText error={error} />
-        <Button type="submit" size="sm" busy={busy} className="self-start">Add note</Button>
+        <Button type="submit" size="sm" busy={busy} className="self-start">
+          Add note
+        </Button>
       </form>
       <ol className="mt-5 flex flex-col gap-4">
         {data.notes.length === 0 && <Empty>No notes yet.</Empty>}
         {data.notes.map((n) => (
           <li key={n.id} className="border-l-2 border-line pl-3">
             <p className="text-sm text-ink-2">
-              <strong className="text-ink">{n.authorName}</strong> · {ROLE_LABEL[n.authorRole]} · {new Date(n.at).toLocaleString('en-IN', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+              <strong className="text-ink">{n.authorName}</strong> · {ROLE_LABEL[n.authorRole]} ·{' '}
+              {new Date(n.at).toLocaleString('en-IN', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
             </p>
-            {n.kind === 'handover' ? <p className="font-bold text-brand">Signed off a shift handover</p> : <p>{n.text}</p>}
+            {n.kind === 'handover' ? (
+              <p className="font-bold text-brand">Signed off a shift handover</p>
+            ) : (
+              <p>{n.text}</p>
+            )}
           </li>
         ))}
       </ol>

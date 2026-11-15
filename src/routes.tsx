@@ -14,7 +14,11 @@ const Appointments = lazy(() => import('./pages/Appointments'))
 const Handover = lazy(() => import('./pages/Handover'))
 const CircleSettings = lazy(() => import('./pages/CircleSettings'))
 
-const Loading = () => <p className="px-6 py-16 text-center text-ink-2" role="status">Loading…</p>
+const Loading = () => (
+  <p className="px-6 py-16 text-center text-ink-2" role="status">
+    Loading…
+  </p>
+)
 
 function Gate({ children, signedIn }: { children: ReactNode; signedIn: boolean }) {
   const { user, loading } = useAuth()
@@ -29,14 +33,70 @@ function Gate({ children, signedIn }: { children: ReactNode; signedIn: boolean }
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Gate signedIn={false}><Landing /></Gate>} />
-      <Route path="/circles" element={<Gate signedIn><Circles /></Gate>} />
-      <Route path="/c/:circleId" element={<Gate signedIn><CircleShell /></Gate>}>
-        <Route index element={<Suspense fallback={<Loading />}><Today /></Suspense>} />
-        <Route path="medications" element={<Suspense fallback={<Loading />}><Medications /></Suspense>} />
-        <Route path="appointments" element={<Suspense fallback={<Loading />}><Appointments /></Suspense>} />
-        <Route path="handover" element={<Suspense fallback={<Loading />}><Handover /></Suspense>} />
-        <Route path="circle" element={<Suspense fallback={<Loading />}><CircleSettings /></Suspense>} />
+      <Route
+        path="/"
+        element={
+          <Gate signedIn={false}>
+            <Landing />
+          </Gate>
+        }
+      />
+      <Route
+        path="/circles"
+        element={
+          <Gate signedIn>
+            <Circles />
+          </Gate>
+        }
+      />
+      <Route
+        path="/c/:circleId"
+        element={
+          <Gate signedIn>
+            <CircleShell />
+          </Gate>
+        }
+      >
+        <Route
+          index
+          element={
+            <Suspense fallback={<Loading />}>
+              <Today />
+            </Suspense>
+          }
+        />
+        <Route
+          path="medications"
+          element={
+            <Suspense fallback={<Loading />}>
+              <Medications />
+            </Suspense>
+          }
+        />
+        <Route
+          path="appointments"
+          element={
+            <Suspense fallback={<Loading />}>
+              <Appointments />
+            </Suspense>
+          }
+        />
+        <Route
+          path="handover"
+          element={
+            <Suspense fallback={<Loading />}>
+              <Handover />
+            </Suspense>
+          }
+        />
+        <Route
+          path="circle"
+          element={
+            <Suspense fallback={<Loading />}>
+              <CircleSettings />
+            </Suspense>
+          }
+        />
       </Route>
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />

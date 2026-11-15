@@ -28,12 +28,36 @@ interface NotifyResult {
  * The Firestore record is the lock (first claimer sends) and the audit trail.
  */
 /** `manual`: a person pressed a button, so an unsent earlier attempt may be retried straight away (no cooldown). */
-export async function notifyCircle(circleId: string, id: string, kind: NotificationRecord['kind'], subject: string, text: string, byName: string, manual = false): Promise<NotificationRecord['status'] | 'duplicate'> {
-  const claimed = await claimNotification(circleId, id, { kind, subject, body: text, recipients: [], at: Date.now(), triggeredByName: byName }, manual ? 0 : undefined)
+export async function notifyCircle(
+  circleId: string,
+  id: string,
+  kind: NotificationRecord['kind'],
+  subject: string,
+  text: string,
+  byName: string,
+  manual = false,
+): Promise<NotificationRecord['status'] | 'duplicate'> {
+  const claimed = await claimNotification(
+    circleId,
+    id,
+    { kind, subject, body: text, recipients: [], at: Date.now(), triggeredByName: byName },
+    manual ? 0 : undefined,
+  )
   if (!claimed) return 'duplicate'
   try {
-    const r = await api<NotifyResult>('/api/notify', { circleId, subject, text, appUrl: `${location.origin}/c/${circleId}` })
-    await settleNotification(circleId, id, kind, r.status, `${r.detail}${r.recipients.length ? ` Recipients: ${r.recipients.join(', ')}` : ''}`)
+    const r = await api<NotifyResult>('/api/notify', {
+      circleId,
+      subject,
+      text,
+      appUrl: `${location.origin}/c/${circleId}`,
+    })
+    await settleNotification(
+      circleId,
+      id,
+      kind,
+      r.status,
+      `${r.detail}${r.recipients.length ? ` Recipients: ${r.recipients.join(', ')}` : ''}`,
+    )
     return r.status
   } catch (e) {
     await settleNotification(circleId, id, kind, 'failed', e instanceof Error ? e.message : 'Request failed.')
@@ -86,7 +110,9 @@ export function useReminderEngine() {
       if (known.has(id) || inflight.current.has(id)) continue
       inflight.current.add(id)
       // Release the in-memory guard when done; the Firestore record (and its cooldown) decides any retry.
-      void notifyCircle(circleId, id, kind, subject, text, `${actor.name} (automatic)`).finally(() => inflight.current.delete(id))
+      void notifyCircle(circleId, id, kind, subject, text, `${actor.name} (automatic)`).finally(() =>
+        inflight.current.delete(id),
+      )
     }
   }, [now, data.notifications, data.medications, data.logs, data.appointments, data.patient.name, circleId, actor.name])
 }

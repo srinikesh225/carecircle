@@ -29,11 +29,18 @@ export default function PatientHome() {
       return
     }
     const parts = [`${greeting(now)}, ${first}.`]
-    if (pending.length) parts.push(`You have ${pending.length} medicine${pending.length > 1 ? 's' : ''} to take now: ${pending.map((d) => `${d.medication.name}, ${d.medication.dosage}`).join('; ')}.`)
+    if (pending.length)
+      parts.push(
+        `You have ${pending.length} medicine${pending.length > 1 ? 's' : ''} to take now: ${pending.map((d) => `${d.medication.name}, ${d.medication.dosage}`).join('; ')}.`,
+      )
     const later = doses.filter((d) => d.status === 'upcoming')
-    if (later.length) parts.push(`Later today: ${later.map((d) => `${d.medication.name} at ${fmtTime(d.time)}`).join('; ')}.`)
+    if (later.length)
+      parts.push(`Later today: ${later.map((d) => `${d.medication.name} at ${fmtTime(d.time)}`).join('; ')}.`)
     if (!pending.length && !later.length) parts.push('You have no more medicines to take today.')
-    if (nextAppt) parts.push(`Your next appointment is ${nextAppt.title} on ${fmtDate(nextAppt.date, { weekday: 'long', day: 'numeric', month: 'long' })} at ${fmtTime(nextAppt.time)}.`)
+    if (nextAppt)
+      parts.push(
+        `Your next appointment is ${nextAppt.title} on ${fmtDate(nextAppt.date, { weekday: 'long', day: 'numeric', month: 'long' })} at ${fmtTime(nextAppt.time)}.`,
+      )
     const u = new SpeechSynthesisUtterance(parts.join(' '))
     u.rate = 0.9
     u.onend = () => setSpeaking(false)
@@ -46,7 +53,12 @@ export default function PatientHome() {
     <div className="mx-auto flex max-w-3xl flex-col gap-6 text-[19px]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-bold sm:text-5xl">{greeting(now)}, {first}<span className="text-accent" aria-hidden="true">.</span></h1>
+          <h1 className="font-display text-4xl font-bold sm:text-5xl">
+            {greeting(now)}, {first}
+            <span className="text-accent" aria-hidden="true">
+              .
+            </span>
+          </h1>
           <p className="mt-1 text-ink-2">{fmtDate(today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
         {canSpeak && (
@@ -59,24 +71,40 @@ export default function PatientHome() {
 
       <div className={`rounded-2xl p-6 ${pending.length ? 'bg-info-soft' : 'bg-sage'}`} role="status">
         <p className="font-display text-3xl font-bold">
-          {pending.length ? `${pending.length} medicine${pending.length > 1 ? 's' : ''} to take now` : 'Nothing to take right now'}
+          {pending.length
+            ? `${pending.length} medicine${pending.length > 1 ? 's' : ''} to take now`
+            : 'Nothing to take right now'}
         </p>
-        <p className="text-ink-2">When you take a medicine, press “I took it”. Your family and caregivers will see it straight away.</p>
+        <p className="text-ink-2">
+          When you take a medicine, press “I took it”. Your family and caregivers will see it straight away.
+        </p>
       </div>
 
       <Section title="My medicines today" id="mine">
-        {doses.length === 0 ? <Empty>No medicines are scheduled for today.</Empty> : <ul className="-my-4 divide-y divide-line">{doses.map((v) => <DoseRow key={v.key} v={v} large />)}</ul>}
+        {doses.length === 0 ? (
+          <Empty>No medicines are scheduled for today.</Empty>
+        ) : (
+          <ul className="-my-4 divide-y divide-line">
+            {doses.map((v) => (
+              <DoseRow key={v.key} v={v} large />
+            ))}
+          </ul>
+        )}
       </Section>
 
       <Section title="Next appointment" id="pappt">
         {nextAppt ? (
           <div>
             <p className="text-xl font-bold">{nextAppt.title}</p>
-            <p>{fmtDate(nextAppt.date, { weekday: 'long', day: 'numeric', month: 'long' })} at {fmtTime(nextAppt.time)}</p>
+            <p>
+              {fmtDate(nextAppt.date, { weekday: 'long', day: 'numeric', month: 'long' })} at {fmtTime(nextAppt.time)}
+            </p>
             {nextAppt.doctor && <p className="text-ink-2">{nextAppt.doctor}</p>}
             {nextAppt.notes && <p className="mt-2 text-ink-2">{nextAppt.notes}</p>}
           </div>
-        ) : <Empty>No appointments coming up.</Empty>}
+        ) : (
+          <Empty>No appointments coming up.</Empty>
+        )}
       </Section>
 
       <NoteToCircle circleId={circleId} />
@@ -104,11 +132,26 @@ function NoteToCircle({ circleId }: { circleId: string }) {
   return (
     <Section title="Tell my family and caregivers" id="pnote">
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <label htmlFor="pnote-text" className="text-ink-2">Anything you want them to know: how you feel, a medicine that is running low, help you need.</label>
-        <Textarea id="pnote-text" value={text} onChange={(e) => { setText(e.target.value); setSaved(false) }} />
+        <label htmlFor="pnote-text" className="text-ink-2">
+          Anything you want them to know: how you feel, a medicine that is running low, help you need.
+        </label>
+        <Textarea
+          id="pnote-text"
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value)
+            setSaved(false)
+          }}
+        />
         <ErrorText error={error} />
-        {saved && <p role="status" className="font-bold text-brand">Sent to your circle.</p>}
-        <Button type="submit" size="lg" busy={busy} className="self-start">Send to my circle</Button>
+        {saved && (
+          <p role="status" className="font-bold text-brand">
+            Sent to your circle.
+          </p>
+        )}
+        <Button type="submit" size="lg" busy={busy} className="self-start">
+          Send to my circle
+        </Button>
       </form>
     </Section>
   )

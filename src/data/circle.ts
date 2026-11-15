@@ -18,7 +18,17 @@ import {
 import type { User } from 'firebase/auth'
 import { useEffect, useState } from 'react'
 import { db } from './db'
-import type { Activity, Appointment, CareNote, DoseLog, Medication, Member, NotificationRecord, Patient, Role } from '../domain/types'
+import type {
+  Activity,
+  Appointment,
+  CareNote,
+  DoseLog,
+  Medication,
+  Member,
+  NotificationRecord,
+  Patient,
+  Role,
+} from '../domain/types'
 import { addDays, dayKey, doseKey } from '../domain/schedule'
 import { demoSeed } from './demo'
 
@@ -61,12 +71,15 @@ export function useMyCircles(user: User | null) {
   const [circles, setCircles] = useState<CircleSummary[] | null>(null)
   useEffect(() => {
     if (!user) return
-    return onSnapshot(doc(db, 'users', user.uid), async (snap) => {
-      const ids: string[] = snap.data()?.circleIds ?? []
+    const uid = user.uid
+    async function load(ids: string[]) {
       const rows = await Promise.all(
         ids.map(async (id) => {
           try {
-            const [c, m] = await Promise.all([getDoc(doc(db, 'circles', id)), getDoc(doc(db, 'circles', id, 'members', user.uid))])
+            const [c, m] = await Promise.all([
+              getDoc(doc(db, 'circles', id)),
+              getDoc(doc(db, 'circles', id, 'members', uid)),
+            ])
             if (!c.exists() || !m.exists()) return null
             return { id, patientName: (c.data().patient as Patient).name, role: m.data().role as Role }
           } catch {
@@ -75,17 +88,30 @@ export function useMyCircles(user: User | null) {
         }),
       )
       setCircles(rows.filter((r): r is CircleSummary => r !== null))
-    })
+    }
+    // Each row already handles its own failure, so load() cannot reject.
+    return onSnapshot(
+      doc(db, 'users', uid),
+      (snap) => void load((snap.data()?.circleIds as string[] | undefined) ?? []),
+    )
   }, [user])
   return circles
 }
 
-export async function createCircle(user: User, input: { patient: Patient; myRole: Role; myName: string; demo: boolean }): Promise<string> {
+export async function createCircle(
+  user: User,
+  input: { patient: Patient; myRole: Role; myName: string; demo: boolean },
+): Promise<string> {
   const circleId = randomCode(6)
   const passcode = newPasscode()
   const actor: Actor = { uid: user.uid, name: input.myName, role: input.myRole }
   const batch = writeBatch(db)
-  batch.set(doc(db, 'circles', circleId), { patient: input.patient, createdBy: user.uid, createdAt: Date.now(), demo: input.demo })
+  batch.set(doc(db, 'circles', circleId), {
+    patient: input.patient,
+    createdBy: user.uid,
+    createdAt: Date.now(),
+    demo: input.demo,
+  })
   batch.set(doc(db, 'circles', circleId, 'secret', 'join'), { passcode })
   batch.set(doc(db, 'circles', circleId, 'members', user.uid), {
     uid: user.uid,
@@ -102,7 +128,10 @@ export async function createCircle(user: User, input: { patient: Patient; myRole
   return circleId
 }
 
-export async function joinCircle(user: User, input: { circleCode: string; passcode: string; myRole: Role; myName: string }): Promise<string> {
+export async function joinCircle(
+  user: User,
+  input: { circleCode: string; passcode: string; myRole: Role; myName: string },
+): Promise<string> {
   const circleId = normaliseCode(input.circleCode)
   const passcode = normaliseCode(input.passcode)
   const batch = writeBatch(db)
@@ -115,7 +144,12 @@ export async function joinCircle(user: User, input: { circleCode: string; passco
     passcode,
   })
   batch.set(doc(db, 'users', user.uid), { circleIds: arrayUnion(circleId) }, { merge: true })
-  logActivity(batch, circleId, { uid: user.uid, name: input.myName, role: input.myRole }, `joined the circle as ${input.myRole}`)
+  logActivity(
+    batch,
+    circleId,
+    { uid: user.uid, name: input.myName, role: input.myRole },
+    `joined the circle as ${input.myRole}`,
+  )
   try {
     await batch.commit()
   } catch {
@@ -155,28 +189,67 @@ export function useCircle(circleId: string, uid: string) {
     setError(null)
     const set = (patch: Partial_) => setState((s) => ({ ...s, ...patch }))
     const fail = () => setError('You do not have access to this Care Circle, or it does not exist.')
-    const withId = <T,>(d: { id: string; data: () => unknown }) => ({ id: d.id, ...(d.data() as object) }) as T
+    const withId = <T>(d: { id: string; data: () => unknown }) => ({ id: d.id, ...(d.data() as object) }) as T
     const since = addDays(dayKey(new Date()), -LOG_WINDOW_DAYS)
 
     const unsubs = [
-      onSnapshot(doc(db, 'circles', circleId), (s) => {
-        if (!s.exists()) return fail()
-        const d = s.data()
-        set({ patient: d.patient as Patient, createdBy: d.createdBy as string, demo: Boolean(d.demo) })
-      }, fail),
-      onSnapshot(doc(db, 'circles', circleId, 'secret', 'join'), (s) => set({ passcode: (s.data()?.passcode as string) ?? null }), () => {}),
-      onSnapshot(col(circleId, 'members'), (s) => {
-        const members = s.docs.map((d) => d.data() as Member)
-        set({ members, me: members.find((m) => m.uid === uid) ?? null })
-      }, fail),
-      onSnapshot(col(circleId, 'medications'), (s) => set({ medications: s.docs.map((d) => withId<Medication>(d)) }), () => {}),
-      onSnapshot(col(circleId, 'appointments'), (s) =>
-        set({ appointments: s.docs.map((d) => withId<Appointment>(d)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)) }), () => {}),
-      onSnapshot(query(col(circleId, 'doseLogs'), where('date', '>=', since)), (s) => set({ logs: s.docs.map((d) => withId<DoseLog>(d)) }), () => {}),
-      onSnapshot(query(col(circleId, 'notes'), orderBy('at', 'desc'), qLimit(60)), (s) => set({ notes: s.docs.map((d) => withId<CareNote>(d)) }), () => {}),
-      onSnapshot(query(col(circleId, 'activity'), orderBy('at', 'desc'), qLimit(60)), (s) => set({ activity: s.docs.map((d) => withId<Activity>(d)) }), () => {}),
-      onSnapshot(query(col(circleId, 'notifications'), orderBy('at', 'desc'), qLimit(30)), (s) =>
-        set({ notifications: s.docs.map((d) => withId<NotificationRecord>(d)) }), () => {}),
+      onSnapshot(
+        doc(db, 'circles', circleId),
+        (s) => {
+          if (!s.exists()) return fail()
+          const d = s.data()
+          set({ patient: d.patient as Patient, createdBy: d.createdBy as string, demo: Boolean(d.demo) })
+        },
+        fail,
+      ),
+      onSnapshot(
+        doc(db, 'circles', circleId, 'secret', 'join'),
+        (s) => set({ passcode: (s.data()?.passcode as string) ?? null }),
+        () => {},
+      ),
+      onSnapshot(
+        col(circleId, 'members'),
+        (s) => {
+          const members = s.docs.map((d) => d.data() as Member)
+          set({ members, me: members.find((m) => m.uid === uid) ?? null })
+        },
+        fail,
+      ),
+      onSnapshot(
+        col(circleId, 'medications'),
+        (s) => set({ medications: s.docs.map((d) => withId<Medication>(d)) }),
+        () => {},
+      ),
+      onSnapshot(
+        col(circleId, 'appointments'),
+        (s) =>
+          set({
+            appointments: s.docs
+              .map((d) => withId<Appointment>(d))
+              .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)),
+          }),
+        () => {},
+      ),
+      onSnapshot(
+        query(col(circleId, 'doseLogs'), where('date', '>=', since)),
+        (s) => set({ logs: s.docs.map((d) => withId<DoseLog>(d)) }),
+        () => {},
+      ),
+      onSnapshot(
+        query(col(circleId, 'notes'), orderBy('at', 'desc'), qLimit(60)),
+        (s) => set({ notes: s.docs.map((d) => withId<CareNote>(d)) }),
+        () => {},
+      ),
+      onSnapshot(
+        query(col(circleId, 'activity'), orderBy('at', 'desc'), qLimit(60)),
+        (s) => set({ activity: s.docs.map((d) => withId<Activity>(d)) }),
+        () => {},
+      ),
+      onSnapshot(
+        query(col(circleId, 'notifications'), orderBy('at', 'desc'), qLimit(30)),
+        (s) => set({ notifications: s.docs.map((d) => withId<NotificationRecord>(d)) }),
+        () => {},
+      ),
     ]
     return () => unsubs.forEach((u) => u())
   }, [circleId, uid])
@@ -210,7 +283,15 @@ export function useCircle(circleId: string, uid: string) {
 
 /* -------------------------------------------------------------------- writes */
 
-export async function recordDose(circleId: string, actor: Actor, med: Medication, date: string, time: string, status: 'taken' | 'skipped', reason = '') {
+export async function recordDose(
+  circleId: string,
+  actor: Actor,
+  med: Medication,
+  date: string,
+  time: string,
+  status: 'taken' | 'skipped',
+  reason = '',
+) {
   const id = doseKey(date, med.id, time)
   const batch = writeBatch(db)
   batch.set(doc(col(circleId, 'doseLogs'), id), {
@@ -225,7 +306,12 @@ export async function recordDose(circleId: string, actor: Actor, med: Medication
     byRole: actor.role,
     at: Date.now(),
   } satisfies Omit<DoseLog, 'id'>)
-  logActivity(batch, circleId, actor, `recorded ${med.name} (${time}) as ${status === 'taken' ? 'taken' : 'not taken'}${reason ? `: ${reason}` : ''}`)
+  logActivity(
+    batch,
+    circleId,
+    actor,
+    `recorded ${med.name} (${time}) as ${status === 'taken' ? 'taken' : 'not taken'}${reason ? `: ${reason}` : ''}`,
+  )
   await batch.commit()
 }
 
@@ -251,7 +337,12 @@ export async function saveMedication(circleId: string, actor: Actor, input: MedI
     updatedAt: Date.now(),
     updatedByName: actor.name,
   })
-  logActivity(batch, circleId, actor, existing ? `updated ${input.name} (${times.join(', ')})` : `added ${input.name} at ${times.join(', ')}`)
+  logActivity(
+    batch,
+    circleId,
+    actor,
+    existing ? `updated ${input.name} (${times.join(', ')})` : `added ${input.name} at ${times.join(', ')}`,
+  )
   await batch.commit()
 }
 
@@ -276,7 +367,12 @@ export async function saveAppointment(circleId: string, actor: Actor, input: App
   const batch = writeBatch(db)
   const ref = existing ? doc(col(circleId, 'appointments'), existing.id) : doc(col(circleId, 'appointments'))
   batch.set(ref, { ...input, createdByName: existing?.createdByName ?? actor.name })
-  logActivity(batch, circleId, actor, `${existing ? 'updated' : 'added'} appointment: ${input.title} on ${input.date} ${input.time}`)
+  logActivity(
+    batch,
+    circleId,
+    actor,
+    `${existing ? 'updated' : 'added'} appointment: ${input.title} on ${input.date} ${input.time}`,
+  )
   await batch.commit()
 }
 
@@ -289,7 +385,14 @@ export async function deleteAppointment(circleId: string, actor: Actor, appt: Ap
 
 export async function addNote(circleId: string, actor: Actor, text: string, kind: 'note' | 'handover' = 'note') {
   const batch = writeBatch(db)
-  batch.set(doc(col(circleId, 'notes')), { kind, text, authorUid: actor.uid, authorName: actor.name, authorRole: actor.role, at: Date.now() })
+  batch.set(doc(col(circleId, 'notes')), {
+    kind,
+    text,
+    authorUid: actor.uid,
+    authorName: actor.name,
+    authorRole: actor.role,
+    at: Date.now(),
+  })
   logActivity(batch, circleId, actor, kind === 'handover' ? 'signed off a shift handover' : `added a care note`)
   await batch.commit()
 }
@@ -310,7 +413,8 @@ export async function rotatePasscode(circleId: string, actor: Actor) {
 
 export async function removeMember(circleId: string, actor: Actor, member: Member) {
   await deleteDoc(doc(col(circleId, 'members'), member.uid))
-  if (member.uid === actor.uid) await setDoc(doc(db, 'users', actor.uid), { circleIds: arrayRemove(circleId) }, { merge: true })
+  if (member.uid === actor.uid)
+    await setDoc(doc(db, 'users', actor.uid), { circleIds: arrayRemove(circleId) }, { merge: true })
   const batch = writeBatch(db)
   if (member.uid !== actor.uid) {
     logActivity(batch, circleId, actor, `removed ${member.name} from the circle`)
@@ -324,13 +428,19 @@ export async function removeMember(circleId: string, actor: Actor, member: Membe
  * and a persistent failure is retried at most every 10 minutes. Sent reminders are never repeated.
  */
 export const RETRY_AFTER_MS = 10 * 60_000
-export const canRetry = (n: Pick<NotificationRecord, 'status' | 'at'>, now = Date.now(), after = RETRY_AFTER_MS) => n.status !== 'sent' && now - n.at >= after
+export const canRetry = (n: Pick<NotificationRecord, 'status' | 'at'>, now = Date.now(), after = RETRY_AFTER_MS) =>
+  n.status !== 'sent' && now - n.at >= after
 
 /**
  * Claims the right to send a notification for one event. Returns false if another member
  * (or another open tab) already claimed it — this is what stops duplicate emails.
  */
-export async function claimNotification(circleId: string, id: string, rec: Omit<NotificationRecord, 'id' | 'status' | 'detail'>, retryAfterMs = RETRY_AFTER_MS): Promise<boolean> {
+export async function claimNotification(
+  circleId: string,
+  id: string,
+  rec: Omit<NotificationRecord, 'id' | 'status' | 'detail'>,
+  retryAfterMs = RETRY_AFTER_MS,
+): Promise<boolean> {
   const ref = doc(col(circleId, 'notifications'), id)
   try {
     return await runTransaction(db, async (tx) => {
@@ -344,6 +454,12 @@ export async function claimNotification(circleId: string, id: string, rec: Omit<
   }
 }
 
-export async function settleNotification(circleId: string, id: string, kind: NotificationRecord['kind'], status: NotificationRecord['status'], detail: string) {
+export async function settleNotification(
+  circleId: string,
+  id: string,
+  kind: NotificationRecord['kind'],
+  status: NotificationRecord['status'],
+  detail: string,
+) {
   await setDoc(doc(col(circleId, 'notifications'), id), { kind, status, detail }, { merge: true })
 }

@@ -8,33 +8,57 @@
 :root {
   /* Palette after the Medi reference: soft sage canvas, off-white frames, near-black ink,
      moss green for brand and "taken", chartreuse used only as a decorative accent (never for text). */
-  --paper: 236 239 232;      /* #ECEFE8 sage canvas */
-  --card: 252 252 249;       /* #FCFCF9 off-white frame */
-  --ink: 21 25 21;           /* #151915 */
-  --ink-2: 78 86 79;         /* #4E564F  >= 6.5:1 on canvas and card */
-  --line: 223 227 216;       /* #DFE3D8 */
-  --brand: 62 92 43;         /* #3E5C2B moss, 7:1 on card */
+  --paper: 236 239 232; /* #ECEFE8 sage canvas */
+  --card: 252 252 249; /* #FCFCF9 off-white frame */
+  --ink: 21 25 21; /* #151915 */
+  --ink-2: 78 86 79; /* #4E564F  >= 6.5:1 on canvas and card */
+  --line: 223 227 216; /* #DFE3D8 */
+  --brand: 62 92 43; /* #3E5C2B moss, 7:1 on card */
   --brand-dark: 47 71 32;
   --brand-soft: 231 238 220;
-  --sage: 214 224 200;       /* #D6E0C8 image-panel green */
-  --accent: 214 205 39;      /* #D6CD27 chartreuse: dots, + markers, chart fill */
+  --sage: 214 224 200; /* #D6E0C8 image-panel green */
+  --accent: 214 205 39; /* #D6CD27 chartreuse: dots, + markers, chart fill */
   --accent-soft: 244 241 196;
-  --warn: 138 75 8;          /* #8A4B08 */
+  --warn: 138 75 8; /* #8A4B08 */
   --warn-soft: 251 239 217;
-  --alert: 161 39 27;        /* #A1271B */
+  --alert: 161 39 27; /* #A1271B */
   --alert-soft: 249 228 225;
-  --info: 35 78 122;         /* #234E7A */
+  --info: 35 78 122; /* #234E7A */
   --info-soft: 227 236 246;
   color-scheme: light;
 }
 
-html { font-size: 17px; -webkit-text-size-adjust: 100%; }
-body { @apply bg-paper text-ink font-sans antialiased; line-height: 1.5; }
-h1, h2, h3 { line-height: 1.15; }
-.font-display { font-family: 'Bricolage Grotesque Variable', 'Atkinson Hyperlegible', system-ui, sans-serif; letter-spacing: -0.035em; }
-:focus-visible { outline: 3px solid rgb(var(--brand)); outline-offset: 2px; }
-.tabular { font-variant-numeric: tabular-nums; }
+html {
+  font-size: 17px;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+  line-height: 1.5;
+}
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+}
+.font-display {
+  font-family: 'Bricolage Grotesque Variable', 'Atkinson Hyperlegible', system-ui, sans-serif;
+  letter-spacing: -0.035em;
+}
+:focus-visible {
+  outline: 3px solid rgb(var(--brand));
+  outline-offset: 2px;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
 }

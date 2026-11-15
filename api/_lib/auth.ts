@@ -2,7 +2,9 @@ import { createRemoteJWKSet, jwtVerify } from 'jose'
 
 export const PROJECT_ID = process.env.FIREBASE_PROJECT_ID ?? 'carecircle-pw-1115'
 
-const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'))
+const JWKS = createRemoteJWKSet(
+  new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'),
+)
 
 export interface Req {
   method?: string
@@ -16,7 +18,10 @@ export interface Res {
 }
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message)
   }
 }
@@ -28,7 +33,10 @@ export async function verifyUser(req: Req): Promise<{ uid: string; token: string
   const token = value?.startsWith('Bearer ') ? value.slice(7) : null
   if (!token) throw new HttpError(401, 'Sign in required.')
   try {
-    const { payload } = await jwtVerify(token, JWKS, { issuer: `https://securetoken.google.com/${PROJECT_ID}`, audience: PROJECT_ID })
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${PROJECT_ID}`,
+      audience: PROJECT_ID,
+    })
     if (!payload.sub) throw new Error('no subject')
     return { uid: payload.sub, token }
   } catch {
@@ -50,7 +58,9 @@ const base = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databas
  */
 export async function circleMembers(circleId: string, token: string) {
   if (!/^[A-Z0-9]{4,12}$/.test(circleId)) throw new HttpError(400, 'Invalid circle.')
-  const r = await fetch(`${base}/circles/${circleId}/members?pageSize=50`, { headers: { Authorization: `Bearer ${token}` } })
+  const r = await fetch(`${base}/circles/${circleId}/members?pageSize=50`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
   if (r.status === 403 || r.status === 404) throw new HttpError(403, 'You are not a member of this Care Circle.')
   if (!r.ok) throw new HttpError(502, 'Could not reach the database.')
   const body = (await r.json()) as { documents?: FsDoc[] }

@@ -65,7 +65,12 @@ const MS_HOUR = 3_600_000
  * Rule-based signals for the family and caregivers. Deterministic and explainable:
  * every item says exactly which records produced it.
  */
-export function attentionItems(meds: Medication[], logs: DoseLog[], appointments: Appointment[], now: Date): AttentionItem[] {
+export function attentionItems(
+  meds: Medication[],
+  logs: DoseLog[],
+  appointments: Appointment[],
+  now: Date,
+): AttentionItem[] {
   const items: AttentionItem[] = []
   const idx = indexLogs(logs)
   const today = dayKey(now)
@@ -178,13 +183,21 @@ export function buildHandover(input: {
 }
 
 export function handoverText(h: Handover, patientName: string): string {
-  const lines: string[] = [`Handover for ${patientName}`, `Covering: since ${h.sinceLabel}${h.previousBy ? ` (last handover by ${h.previousBy})` : ''}`, '']
+  const lines: string[] = [
+    `Handover for ${patientName}`,
+    `Covering: since ${h.sinceLabel}${h.previousBy ? ` (last handover by ${h.previousBy})` : ''}`,
+    '',
+  ]
   lines.push('Recorded doses:')
   if (h.recorded.length === 0) lines.push('  None recorded in this period.')
-  for (const l of h.recorded) lines.push(`  ${l.date === h.today ? '' : `${fmtDate(l.date, { weekday: 'short' })} `}${fmtTime(l.time)} ${l.medicationName}: ${l.status === 'taken' ? 'taken' : 'not taken'} (recorded by ${l.byName})${l.reason ? ` - ${l.reason}` : ''}`)
+  for (const l of h.recorded)
+    lines.push(
+      `  ${l.date === h.today ? '' : `${fmtDate(l.date, { weekday: 'short' })} `}${fmtTime(l.time)} ${l.medicationName}: ${l.status === 'taken' ? 'taken' : 'not taken'} (recorded by ${l.byName})${l.reason ? ` - ${l.reason}` : ''}`,
+    )
   lines.push('', 'Needs attention now:')
   if (h.outstanding.length === 0) lines.push('  Nothing outstanding.')
-  for (const v of h.outstanding) lines.push(`  ${fmtTime(v.time)} ${v.medication.name}: ${v.status === 'due' ? 'due now' : 'not confirmed'}`)
+  for (const v of h.outstanding)
+    lines.push(`  ${fmtTime(v.time)} ${v.medication.name}: ${v.status === 'due' ? 'due now' : 'not confirmed'}`)
   lines.push('', 'Still to come today:')
   if (h.nextDoses.length === 0) lines.push('  No more doses scheduled today.')
   for (const v of h.nextDoses) lines.push(`  ${fmtTime(v.time)} ${v.medication.name} (${v.medication.dosage})`)
@@ -193,7 +206,8 @@ export function handoverText(h: Handover, patientName: string): string {
   for (const n of h.notes) lines.push(`  ${n.authorName}: ${n.text}`)
   lines.push('', 'Appointments (next 3 days):')
   if (h.appointments.length === 0) lines.push('  None.')
-  for (const a of h.appointments) lines.push(`  ${fmtDate(a.date)} ${fmtTime(a.time)}: ${a.title}${a.doctor ? ` with ${a.doctor}` : ''}`)
+  for (const a of h.appointments)
+    lines.push(`  ${fmtDate(a.date)} ${fmtTime(a.time)}: ${a.title}${a.doctor ? ` with ${a.doctor}` : ''}`)
   return lines.join('\n')
 }
 
@@ -230,7 +244,13 @@ export function briefFacts(input: {
     doses: scheduleFor(today, meds, logs, now).map((v) => ({
       time: fmtTime(v.time),
       medication: `${v.medication.name} ${v.medication.dosage}`.trim(),
-      status: { taken: 'taken', skipped: 'recorded as not taken', unconfirmed: 'not confirmed (nobody recorded it)', due: 'due now', upcoming: 'upcoming' }[v.status],
+      status: {
+        taken: 'taken',
+        skipped: 'recorded as not taken',
+        unconfirmed: 'not confirmed (nobody recorded it)',
+        due: 'due now',
+        upcoming: 'upcoming',
+      }[v.status],
       recordedBy: v.log?.byName ?? null,
     })),
     weekAdherencePct: week.pct,
@@ -258,14 +278,31 @@ export function composeBrief(f: BriefFacts): string {
 
   if (f.doses.length === 0) parts.push(`${first} has no medication scheduled today.`)
   else {
-    parts.push(`${first} has taken ${taken.length} of ${f.doses.length} scheduled dose${f.doses.length === 1 ? '' : 's'} today.`)
-    if (unconfirmed.length) parts.push(`${unconfirmed.map((d) => `${d.medication} (${d.time})`).join(', ')} ${unconfirmed.length === 1 ? 'has' : 'have'} not been confirmed by anyone yet.`)
-    if (skipped.length) parts.push(`${skipped.map((d) => `${d.medication} (${d.time})`).join(', ')} ${skipped.length === 1 ? 'was' : 'were'} recorded as not taken.`)
-    if (remaining.length) parts.push(`Still to come: ${remaining.map((d) => `${d.medication} at ${d.time}`).join(', ')}.`)
+    parts.push(
+      `${first} has taken ${taken.length} of ${f.doses.length} scheduled dose${f.doses.length === 1 ? '' : 's'} today.`,
+    )
+    if (unconfirmed.length)
+      parts.push(
+        `${unconfirmed.map((d) => `${d.medication} (${d.time})`).join(', ')} ${unconfirmed.length === 1 ? 'has' : 'have'} not been confirmed by anyone yet.`,
+      )
+    if (skipped.length)
+      parts.push(
+        `${skipped.map((d) => `${d.medication} (${d.time})`).join(', ')} ${skipped.length === 1 ? 'was' : 'were'} recorded as not taken.`,
+      )
+    if (remaining.length)
+      parts.push(`Still to come: ${remaining.map((d) => `${d.medication} at ${d.time}`).join(', ')}.`)
   }
-  if (f.weekAdherencePct !== null) parts.push(`Over the last 7 days, ${f.weekAdherencePct}% of doses that could be checked were recorded as taken.`)
-  if (f.notes.length) parts.push(`Today's notes: ${f.notes.map((n) => `${n.by} wrote "${n.text.trim().replace(/[.!?]+$/, '')}"`).join('; ')}.`)
-  if (f.appointments.length) parts.push(`Next appointment: ${f.appointments[0].title} on ${f.appointments[0].when}${f.appointments[0].doctor ? ` with ${f.appointments[0].doctor}` : ''}.`)
-  if (unconfirmed.length) parts.push(`Someone in the circle may want to check in with ${first} about the unconfirmed dose.`)
+  if (f.weekAdherencePct !== null)
+    parts.push(`Over the last 7 days, ${f.weekAdherencePct}% of doses that could be checked were recorded as taken.`)
+  if (f.notes.length)
+    parts.push(
+      `Today's notes: ${f.notes.map((n) => `${n.by} wrote "${n.text.trim().replace(/[.!?]+$/, '')}"`).join('; ')}.`,
+    )
+  if (f.appointments.length)
+    parts.push(
+      `Next appointment: ${f.appointments[0].title} on ${f.appointments[0].when}${f.appointments[0].doctor ? ` with ${f.appointments[0].doctor}` : ''}.`,
+    )
+  if (unconfirmed.length)
+    parts.push(`Someone in the circle may want to check in with ${first} about the unconfirmed dose.`)
   return parts.join(' ')
 }

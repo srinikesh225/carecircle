@@ -16,7 +16,10 @@ export function Logo({ to = '/' }: { to?: string }) {
     <Link to={to} className="inline-flex items-center gap-2.5" aria-label="CareCircle home">
       <Mark />
       <span className="font-display text-[1.45rem] font-bold leading-none">
-        CareCircle<span className="text-accent" aria-hidden="true">.</span>
+        CareCircle
+        <span className="text-accent" aria-hidden="true">
+          .
+        </span>
       </span>
     </Link>
   )

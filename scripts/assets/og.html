@@ -1,39 +1,169 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>og</title>
-<style>
-@font-face { font-family: AH; font-weight: 400; src: url(../../node_modules/@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-400-normal.woff2) format('woff2'); }
-@font-face { font-family: AH; font-weight: 700; src: url(../../node_modules/@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-700-normal.woff2) format('woff2'); }
-@font-face { font-family: BG; font-weight: 200 800; src: url(../../node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2) format('woff2'); }
-* { box-sizing: border-box; margin: 0; }
-html, body { width: 1200px; height: 630px; overflow: hidden; }
-body { font-family: AH, sans-serif; background: #ECEFE8; color: #151915; display: grid; grid-template-columns: 1fr 440px; gap: 56px; padding: 64px 72px; }
-.brand { display: flex; align-items: center; gap: 14px; font-family: BG; font-weight: 700; font-size: 36px; letter-spacing: -1px; }
-.dot { color: #D6CD27; }
-.brand svg { width: 56px; height: 56px; }
-h1 { margin-top: 40px; font-family: BG; font-size: 62px; line-height: 1.0; font-weight: 700; letter-spacing: -2.2px; }
-p.sub { margin-top: 24px; font-size: 24px; line-height: 1.4; color: #4E564F; max-width: 560px; }
-.url { position: absolute; left: 72px; bottom: 44px; font-size: 22px; font-weight: 700; color: #3E5C2B; }
-.card { align-self: center; background: #FCFCF9; border-radius: 28px; overflow: hidden; }
-.card h2 { font-family: BG; font-size: 26px; letter-spacing: -0.6px; padding: 22px 26px 14px; }
-.row { display: grid; grid-template-columns: 96px 1fr; gap: 4px 12px; padding: 16px 26px; border-top: 1px solid #DFE3D8; font-size: 21px; }
-.row:last-child { border-bottom: 0; }
-.t { font-weight: 700; }
-.m { font-weight: 700; }
-.b { grid-column: 2; justify-self: start; font-size: 17px; font-weight: 700; padding: 3px 12px; border-radius: 999px; }
-.ok { background: #E7EEDC; color: #3E5C2B; } .nc { background: #F9E4E1; color: #A1271B; } .later { background: #ECEFE8; color: #4E564F; }
-.who { grid-column: 2; font-size: 16px; color: #4A544E; }
-</style></head>
-<body>
-  <div>
-    <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#3E5C2B"/><circle cx="16" cy="16.5" r="7.5" fill="none" stroke="#FCFCF9" stroke-width="2.6"/><circle cx="16" cy="9" r="3.1" fill="#D6CD27"/></svg><span>CareCircle<span class="dot">.</span></span></div>
-    <h1>Shared care for the people who raised you<span class="dot">.</span></h1>
-    <p class="sub">One live record of medicines, doses and appointments for an older adult, their family and their caregivers.</p>
-  </div>
-  <div class="card" aria-hidden="true">
-    <h2>Today</h2>
-    <div class="row"><span class="t">8:30 AM</span><span class="m">Morning tablets</span><span class="b ok">Taken</span><span class="who">Recorded by the caregiver</span></div>
-    <div class="row"><span class="t">1:30 PM</span><span class="m">After-lunch tablet</span><span class="b nc">Not confirmed</span><span class="who">Family notified by email</span></div>
-    <div class="row"><span class="t">8:00 PM</span><span class="m">Evening tablets</span><span class="b later">Later</span></div>
-  </div>
-  <div class="url">carecircle-pw.vercel.app</div>
-</body></html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>og</title>
+    <style>
+      @font-face {
+        font-family: AH;
+        font-weight: 400;
+        src: url(../../node_modules/@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-400-normal.woff2)
+          format('woff2');
+      }
+      @font-face {
+        font-family: AH;
+        font-weight: 700;
+        src: url(../../node_modules/@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-700-normal.woff2)
+          format('woff2');
+      }
+      @font-face {
+        font-family: BG;
+        font-weight: 200 800;
+        src: url(../../node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2)
+          format('woff2');
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        font-family: AH, sans-serif;
+        background: #ecefe8;
+        color: #151915;
+        display: grid;
+        grid-template-columns: 1fr 440px;
+        gap: 56px;
+        padding: 64px 72px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-family: BG;
+        font-weight: 700;
+        font-size: 36px;
+        letter-spacing: -1px;
+      }
+      .dot {
+        color: #d6cd27;
+      }
+      .brand svg {
+        width: 56px;
+        height: 56px;
+      }
+      h1 {
+        margin-top: 40px;
+        font-family: BG;
+        font-size: 62px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -2.2px;
+      }
+      p.sub {
+        margin-top: 24px;
+        font-size: 24px;
+        line-height: 1.4;
+        color: #4e564f;
+        max-width: 560px;
+      }
+      .url {
+        position: absolute;
+        left: 72px;
+        bottom: 44px;
+        font-size: 22px;
+        font-weight: 700;
+        color: #3e5c2b;
+      }
+      .card {
+        align-self: center;
+        background: #fcfcf9;
+        border-radius: 28px;
+        overflow: hidden;
+      }
+      .card h2 {
+        font-family: BG;
+        font-size: 26px;
+        letter-spacing: -0.6px;
+        padding: 22px 26px 14px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 96px 1fr;
+        gap: 4px 12px;
+        padding: 16px 26px;
+        border-top: 1px solid #dfe3d8;
+        font-size: 21px;
+      }
+      .row:last-child {
+        border-bottom: 0;
+      }
+      .t {
+        font-weight: 700;
+      }
+      .m {
+        font-weight: 700;
+      }
+      .b {
+        grid-column: 2;
+        justify-self: start;
+        font-size: 17px;
+        font-weight: 700;
+        padding: 3px 12px;
+        border-radius: 999px;
+      }
+      .ok {
+        background: #e7eedc;
+        color: #3e5c2b;
+      }
+      .nc {
+        background: #f9e4e1;
+        color: #a1271b;
+      }
+      .later {
+        background: #ecefe8;
+        color: #4e564f;
+      }
+      .who {
+        grid-column: 2;
+        font-size: 16px;
+        color: #4a544e;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 32 32">
+          <rect width="32" height="32" rx="9" fill="#3E5C2B" />
+          <circle cx="16" cy="16.5" r="7.5" fill="none" stroke="#FCFCF9" stroke-width="2.6" />
+          <circle cx="16" cy="9" r="3.1" fill="#D6CD27" /></svg
+        ><span>CareCircle<span class="dot">.</span></span>
+      </div>
+      <h1>Shared care for the people who raised you<span class="dot">.</span></h1>
+      <p class="sub">
+        One live record of medicines, doses and appointments for an older adult, their family and their caregivers.
+      </p>
+    </div>
+    <div class="card" aria-hidden="true">
+      <h2>Today</h2>
+      <div class="row">
+        <span class="t">8:30 AM</span><span class="m">Morning tablets</span><span class="b ok">Taken</span
+        ><span class="who">Recorded by the caregiver</span>
+      </div>
+      <div class="row">
+        <span class="t">1:30 PM</span><span class="m">After-lunch tablet</span><span class="b nc">Not confirmed</span
+        ><span class="who">Family notified by email</span>
+      </div>
+      <div class="row">
+        <span class="t">8:00 PM</span><span class="m">Evening tablets</span><span class="b later">Later</span>
+      </div>
+    </div>
+    <div class="url">carecircle-pw.vercel.app</div>
+  </body>
+</html>

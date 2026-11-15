@@ -20,11 +20,20 @@ if (!chrome) throw new Error('Set CHROME_PATH to a Chrome or Edge executable')
 // Headless Chrome has a minimum window size, so small icons are rendered in a 512px window and scaled
 // down with the device scale factor (output pixels = window size x scale).
 function shot(html, out, w, h, scale = 1) {
-  execFileSync(chrome, [
-    '--headless=new', '--disable-gpu', '--hide-scrollbars', `--force-device-scale-factor=${scale}`,
-    '--default-background-color=00000000', `--window-size=${w},${h}`, `--screenshot=${join(root, 'public', out)}`,
-    pathToFileURL(join(root, 'scripts/assets', html)).href,
-  ], { stdio: 'ignore' })
+  execFileSync(
+    chrome,
+    [
+      '--headless=new',
+      '--disable-gpu',
+      '--hide-scrollbars',
+      `--force-device-scale-factor=${scale}`,
+      '--default-background-color=00000000',
+      `--window-size=${w},${h}`,
+      `--screenshot=${join(root, 'public', out)}`,
+      pathToFileURL(join(root, 'scripts/assets', html)).href,
+    ],
+    { stdio: 'ignore' },
+  )
   console.log(`rendered public/${out} (${Math.round(w * scale)}x${Math.round(h * scale)})`)
 }
 

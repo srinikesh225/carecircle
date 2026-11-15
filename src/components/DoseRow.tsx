@@ -17,7 +17,8 @@ export function DoseRow({ v, large = false }: { v: DoseView; large?: boolean }) 
   // Family and caregivers may record ahead (e.g. a caregiver giving the evening dose early before leaving).
   const open = v.status === 'due' || v.status === 'unconfirmed' || (v.status === 'upcoming' && !isPatient)
 
-  const mark = (status: 'taken' | 'skipped', why = '') => run(() => recordDose(circleId, actor, v.medication, v.date, v.time, status, why)).then(() => setAsking(false))
+  const mark = (status: 'taken' | 'skipped', why = '') =>
+    run(() => recordDose(circleId, actor, v.medication, v.date, v.time, status, why)).then(() => setAsking(false))
 
   return (
     <li className={`flex flex-col gap-3 py-4 ${large ? 'sm:flex-row sm:items-center' : 'md:flex-row md:items-center'}`}>
@@ -42,38 +43,69 @@ export function DoseRow({ v, large = false }: { v: DoseView; large?: boolean }) 
         <StatusBadge status={v.status} large={large} />
         {open && !asking && (
           <>
-            <Button size={large ? 'lg' : 'sm'} busy={busy} onClick={() => mark('taken')} aria-label={`Record ${v.medication.name} at ${fmtTime(v.time)} as taken`}>
+            <Button
+              size={large ? 'lg' : 'sm'}
+              busy={busy}
+              onClick={() => mark('taken')}
+              aria-label={`Record ${v.medication.name} at ${fmtTime(v.time)} as taken`}
+            >
               <Check className="h-5 w-5" aria-hidden /> {isPatient ? 'I took it' : 'Taken'}
             </Button>
-            <Button size={large ? 'lg' : 'sm'} variant="secondary" onClick={() => setAsking(true)} aria-label={`Record ${v.medication.name} at ${fmtTime(v.time)} as not taken`}>
+            <Button
+              size={large ? 'lg' : 'sm'}
+              variant="secondary"
+              onClick={() => setAsking(true)}
+              aria-label={`Record ${v.medication.name} at ${fmtTime(v.time)} as not taken`}
+            >
               <X className="h-5 w-5" aria-hidden /> Not taken
             </Button>
           </>
         )}
         {v.log && (
-          <Button size="sm" variant="ghost" busy={busy} onClick={() => run(() => undoDose(circleId, actor, v.log!))} aria-label={`Undo record for ${v.medication.name} at ${fmtTime(v.time)}`}>
+          <Button
+            size="sm"
+            variant="ghost"
+            busy={busy}
+            onClick={() => run(() => undoDose(circleId, actor, v.log!))}
+            aria-label={`Undo record for ${v.medication.name} at ${fmtTime(v.time)}`}
+          >
             <RotateCcw className="h-4 w-4" aria-hidden /> Undo
           </Button>
         )}
       </div>
       {asking && (
         <div className="w-full rounded border border-line bg-paper p-3 md:order-last">
-          <p className="font-bold">Why was it not taken? <span className="font-normal text-ink-2">(optional, helps the circle)</span></p>
+          <p className="font-bold">
+            Why was it not taken? <span className="font-normal text-ink-2">(optional, helps the circle)</span>
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {REASONS.map((r) => (
-              <button key={r} type="button" onClick={() => setReason(r)} aria-pressed={reason === r}
-                className={`rounded border px-3 py-1.5 ${reason === r ? 'border-brand bg-brand-soft font-bold text-brand' : 'border-line bg-card'}`}>
+              <button
+                key={r}
+                type="button"
+                onClick={() => setReason(r)}
+                aria-pressed={reason === r}
+                className={`rounded border px-3 py-1.5 ${reason === r ? 'border-brand bg-brand-soft font-bold text-brand' : 'border-line bg-card'}`}
+              >
                 {r}
               </button>
             ))}
           </div>
           <div className="mt-3 flex gap-2">
-            <Button size="sm" busy={busy} onClick={() => mark('skipped', reason)}>Save as not taken</Button>
-            <Button size="sm" variant="secondary" onClick={() => setAsking(false)}>Cancel</Button>
+            <Button size="sm" busy={busy} onClick={() => mark('skipped', reason)}>
+              Save as not taken
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setAsking(false)}>
+              Cancel
+            </Button>
           </div>
         </div>
       )}
-      {error && <div className="w-full"><ErrorText error={error} /></div>}
+      {error && (
+        <div className="w-full">
+          <ErrorText error={error} />
+        </div>
+      )}
     </li>
   )
 }
