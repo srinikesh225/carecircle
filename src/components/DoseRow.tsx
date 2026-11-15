@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { Check, RotateCcw, X } from 'lucide-react'
 import { recordDose, undoDose } from '../data/circle'
-import { fmtTime, type DoseView } from '../domain/schedule'
+import { dayKey, fmtTime, type DoseView } from '../domain/schedule'
 import { Button, ErrorText, StatusBadge, useAction } from '../ui'
 import { useCircleCtx } from '../pages/CircleShell'
 
 const REASONS = ['Felt unwell', 'Refused', 'Asleep', 'Medicine ran out', 'Doctor advised to hold']
 
 export function DoseRow({ v, large = false }: { v: DoseView; large?: boolean }) {
-  const { circleId, actor } = useCircleCtx()
+  const { circleId, actor, now } = useCircleCtx()
   const [asking, setAsking] = useState(false)
   const [reason, setReason] = useState('')
   const { busy, error, run } = useAction()
@@ -23,7 +23,10 @@ export function DoseRow({ v, large = false }: { v: DoseView; large?: boolean }) 
   return (
     <li className={`flex flex-col gap-3 py-4 ${large ? 'sm:flex-row sm:items-center' : 'md:flex-row md:items-center'}`}>
       <div className="flex min-w-0 flex-1 gap-4">
-        <span className={`tabular w-20 shrink-0 font-bold ${large ? 'text-xl' : ''}`}>{fmtTime(v.time)}</span>
+        <span className={`tabular w-20 shrink-0 font-bold ${large ? 'text-xl' : ''}`}>
+          {fmtTime(v.time)}
+          {v.date !== dayKey(now) && <span className="block text-sm font-normal text-ink-2">yesterday</span>}
+        </span>
         <div className="min-w-0">
           <p className={`font-bold ${large ? 'text-xl' : 'text-[17px]'}`}>
             {v.medication.name} <span className="font-normal text-ink-2">{v.medication.dosage}</span>

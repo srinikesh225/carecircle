@@ -60,6 +60,9 @@ export async function circleMembers(circleId: string, token: string) {
   if (!/^[A-Z0-9]{4,12}$/.test(circleId)) throw new HttpError(400, 'Invalid circle.')
   const r = await fetch(`${base}/circles/${circleId}/members?pageSize=50`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(8_000),
+  }).catch(() => {
+    throw new HttpError(502, 'Could not reach the database.')
   })
   if (r.status === 403 || r.status === 404) throw new HttpError(403, 'You are not a member of this Care Circle.')
   if (!r.ok) throw new HttpError(502, 'Could not reach the database.')

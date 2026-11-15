@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync } from 'node:fs'
@@ -79,6 +80,13 @@ export default defineConfig(({ mode }) => {
       // on signed-in screens (lazy routes). Do not add manualChunks for Firebase: forcing a Firestore chunk
       // pulls shared Firebase code into it and makes the public pages download it too.
       chunkSizeWarningLimit: 600,
+    },
+    test: {
+      // Measure every source file, not only the ones tests happen to import, so the figure is honest.
+      coverage: {
+        include: ['src/**/*.{ts,tsx}', 'api/**/*.ts'],
+        exclude: ['**/*.test.{ts,tsx}', 'src/vite-env.d.ts', 'src/main.tsx'],
+      },
     },
   }
 })

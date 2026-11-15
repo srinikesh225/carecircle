@@ -29,7 +29,7 @@ import type {
   Patient,
   Role,
 } from '../domain/types'
-import { addDays, dayKey, doseKey } from '../domain/schedule'
+import { addDays, dayKey, doseKey, scheduleOnRestart, scheduleWithNewTimes } from '../domain/schedule'
 import { demoSeed } from './demo'
 import { canRetry, RETRY_AFTER_MS } from '../domain/reminders'
 
@@ -190,6 +190,8 @@ export function useCircle(circleId: string, uid: string) {
     setError(null)
     const set = (patch: Partial_) => setState((s) => ({ ...s, ...patch }))
     const fail = () => setError('You do not have access to this Care Circle, or it does not exist.')
+    const failLoad = () =>
+      setError('Part of the care record could not be loaded. Check your connection and reload the page.')
     const withId = <T>(d: { id: string; data: () => unknown }) => ({ id: d.id, ...(d.data() as object) }) as T
     const since = addDays(dayKey(new Date()), -LOG_WINDOW_DAYS)
 
@@ -211,7 +213,8 @@ export function useCircle(circleId: string, uid: string) {
       onSnapshot(
         col(circleId, 'members'),
         (s) => {
-          const members = s.docs.map((d) => d.data() as Member)
+          // The document id is the member's uid; never trust a uid field stored inside the document.
+          const members = s.docs.map((d) => ({ ...(d.data() as Member), uid: d.id }))
           set({ members, me: members.find((m) => m.uid === uid) ?? null })
         },
         fail,
@@ -219,7 +222,7 @@ export function useCircle(circleId: string, uid: string) {
       onSnapshot(
         col(circleId, 'medications'),
         (s) => set({ medications: s.docs.map((d) => withId<Medication>(d)) }),
-        () => {},
+        failLoad,
       ),
       onSnapshot(
         col(circleId, 'appointments'),
@@ -229,22 +232,22 @@ export function useCircle(circleId: string, uid: string) {
               .map((d) => withId<Appointment>(d))
               .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)),
           }),
-        () => {},
+        failLoad,
       ),
       onSnapshot(
         query(col(circleId, 'doseLogs'), where('date', '>=', since)),
         (s) => set({ logs: s.docs.map((d) => withId<DoseLog>(d)) }),
-        () => {},
+        failLoad,
       ),
       onSnapshot(
         query(col(circleId, 'notes'), orderBy('at', 'desc'), qLimit(60)),
         (s) => set({ notes: s.docs.map((d) => withId<CareNote>(d)) }),
-        () => {},
+        failLoad,
       ),
       onSnapshot(
         query(col(circleId, 'activity'), orderBy('at', 'desc'), qLimit(60)),
         (s) => set({ activity: s.docs.map((d) => withId<Activity>(d)) }),
-        () => {},
+        failLoad,
       ),
       onSnapshot(
         query(col(circleId, 'notifications'), orderBy('at', 'desc'), qLimit(30)),
@@ -329,11 +332,13 @@ export async function saveMedication(circleId: string, actor: Actor, input: MedI
   const batch = writeBatch(db)
   const ref = existing ? doc(col(circleId, 'medications'), existing.id) : doc(col(circleId, 'medications'))
   const times = [...new Set(input.times)].sort()
+  const today = dayKey(new Date())
+  // A time change keeps the old times for past days (see scheduleWithNewTimes), so history is not rewritten.
+  const schedule = existing ? scheduleWithNewTimes(existing, times, today) : { times, startDate: today, history: [] }
   batch.set(ref, {
     ...input,
-    times,
+    ...schedule,
     active: existing?.active ?? true,
-    startDate: existing?.startDate ?? dayKey(new Date()),
     endDate: existing?.endDate ?? null,
     updatedAt: Date.now(),
     updatedByName: actor.name,
@@ -347,14 +352,16 @@ export async function saveMedication(circleId: string, actor: Actor, input: MedI
   await batch.commit()
 }
 
-/** Stopping keeps history: the schedule ends yesterday-inclusive so today's open doses disappear but past adherence stays. */
+/**
+ * Stopping ends the schedule yesterday, so today's open doses disappear while doses already recorded today
+ * stay visible. Restarting keeps the earlier active period in history (see scheduleOnRestart).
+ */
 export async function setMedicationActive(circleId: string, actor: Actor, med: Medication, active: boolean) {
   const batch = writeBatch(db)
   const today = dayKey(new Date())
   batch.update(doc(col(circleId, 'medications'), med.id), {
     active,
-    endDate: active ? null : addDays(today, -1),
-    startDate: active && med.endDate ? today : med.startDate,
+    ...(active ? scheduleOnRestart(med, today) : { endDate: addDays(today, -1) }),
     updatedAt: Date.now(),
     updatedByName: actor.name,
   })
@@ -413,14 +420,18 @@ export async function rotatePasscode(circleId: string, actor: Actor) {
 }
 
 export async function removeMember(circleId: string, actor: Actor, member: Member) {
-  await deleteDoc(doc(col(circleId, 'members'), member.uid))
-  if (member.uid === actor.uid)
+  if (member.uid === actor.uid) {
+    // Leaving: once the membership is gone the rules no longer let us write to the circle, so no activity entry.
+    await deleteDoc(doc(col(circleId, 'members'), member.uid))
     await setDoc(doc(db, 'users', actor.uid), { circleIds: arrayRemove(circleId) }, { merge: true })
-  const batch = writeBatch(db)
-  if (member.uid !== actor.uid) {
-    logActivity(batch, circleId, actor, `removed ${member.name} from the circle`)
-    await batch.commit()
+    return
   }
+  // Removing someone else: one atomic batch that also changes the passcode, so they cannot simply rejoin.
+  const batch = writeBatch(db)
+  batch.delete(doc(col(circleId, 'members'), member.uid))
+  batch.update(doc(db, 'circles', circleId, 'secret', 'join'), { passcode: newPasscode() })
+  logActivity(batch, circleId, actor, `removed ${member.name} from the circle and changed the passcode`)
+  await batch.commit()
 }
 
 /**

@@ -120,6 +120,11 @@ function CreateForm() {
     e.preventDefault()
     const id = await run(async () => {
       if (!p.name.trim() || !myName.trim()) throw new Error('Add the patient’s name and your own name.')
+      // The sample adds medicines, which only the patient or family may do (firestore.rules).
+      if (demo && myRole === 'caregiver')
+        throw new Error(
+          'A sample circle adds medicines, which caregivers cannot do. Choose “Family member” or “I am the patient”.',
+        )
       return createCircle(user!, { patient: { ...p, name: p.name.trim() }, myRole, myName: myName.trim(), demo })
     })
     if (id) void nav(`/c/${id}`)

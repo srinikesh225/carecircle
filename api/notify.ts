@@ -1,3 +1,4 @@
+import { SITE_URL } from '../src/site.js'
 import { circleMembers, handle, HttpError, rateLimit, verifyUser } from './_lib/auth.js'
 
 /** RFC 2606 / 6761 reserved names: these addresses can never receive mail, so they are skipped. */
@@ -13,7 +14,7 @@ const escape = (s: string) =>
 export default handle(async (req, res) => {
   const { uid, token } = await verifyUser(req)
   rateLimit(`notify:${uid}`, 10, 60_000)
-  const body = (req.body ?? {}) as { circleId?: string; subject?: string; text?: string; appUrl?: string }
+  const body = (req.body ?? {}) as { circleId?: string; subject?: string; text?: string }
   const subject = (body.subject ?? '').trim().slice(0, 140)
   const text = (body.text ?? '').trim().slice(0, 4000)
   if (!body.circleId || !subject || !text) throw new HttpError(400, 'Missing message.')
@@ -33,8 +34,8 @@ export default handle(async (req, res) => {
     })
   }
 
-  const link =
-    typeof body.appUrl === 'string' && /^https:\/\/[\w.-]+(\/[\w/-]*)?$/.test(body.appUrl) ? body.appUrl : null
+  // The link is built here, never taken from the request, so an email can only point at CareCircle itself.
+  const link = `${SITE_URL}/c/${body.circleId}`
   const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5;color:#151915">
 <p style="white-space:pre-line">${escape(text)}</p>
 ${link ? `<p><a href="${escape(link)}" style="color:#3e5c2b">Open CareCircle</a></p>` : ''}
@@ -52,11 +53,18 @@ ${link ? `<p><a href="${escape(link)}" style="color:#3e5c2b">Open CareCircle</a>
       continue
     }
     if (i > 0) await new Promise((done) => setTimeout(done, 600))
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [to], subject, text, html }),
-    })
+    let r: Response
+    try {
+      r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [to], subject, text, html }),
+        signal: AbortSignal.timeout(10_000),
+      })
+    } catch {
+      notDelivered.push(`${to} (email service did not respond)`)
+      continue
+    }
     if (r.ok) delivered.push(to)
     else {
       const err = (await r.json().catch(() => null)) as { message?: string } | null

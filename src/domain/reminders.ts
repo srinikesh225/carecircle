@@ -1,5 +1,5 @@
 import type { Appointment, DoseLog, Medication, NotificationRecord } from './types.js'
-import { at, dayKey, fmtDate, fmtTime, scheduleFor } from './schedule.js'
+import { at, dayKey, fmtDate, fmtTime, openDoses } from './schedule.js'
 
 /**
  * A reminder that was not sent (email service not configured yet, provider error, or a tab that closed
@@ -15,7 +15,10 @@ export const UNCONFIRMED_WINDOW_MS = 6 * 3_600_000
 export const APPOINTMENT_WINDOW_MS = 24 * 3_600_000
 
 export const canRetry = (n: Pick<NotificationRecord, 'status' | 'at'>, now = Date.now(), after = RETRY_AFTER_MS) =>
-  n.status !== 'sent' && now - n.at >= after
+  n.status !== 'sent' &&
+  // A pending record may still be sending in another member's tab: only treat it as stuck after the full
+  // cooldown, even for a manual retry, so two people pressing at once cannot send twice.
+  now - n.at >= (n.status === 'pending' ? Math.max(after, RETRY_AFTER_MS) : after)
 
 export interface ReminderJob {
   /** Deterministic per event, so every member's app computes the same id and only one email goes out. */
@@ -44,15 +47,17 @@ export function dueReminders(input: {
   const first = patientName.split(' ')[0]
   const jobs: ReminderJob[] = []
 
-  for (const v of scheduleFor(today, medications, logs, now)) {
+  // Includes yesterday's late doses, so a 23:30 dose that goes unconfirmed after midnight is still emailed.
+  for (const v of openDoses(medications, logs, now, UNCONFIRMED_WINDOW_MS)) {
     if (v.status !== 'unconfirmed') continue
     if (now.getTime() - at(v.date, v.time).getTime() > UNCONFIRMED_WINDOW_MS) continue
+    const day = v.date === today ? 'today' : 'yesterday'
     jobs.push({
       id: `dose_${v.key}`,
       kind: 'unconfirmed-dose',
-      subject: `${first}: ${v.medication.name} at ${fmtTime(v.time)} not confirmed`,
+      subject: `${first}: ${v.medication.name} at ${fmtTime(v.time)}${day === 'yesterday' ? ' yesterday' : ''} not confirmed`,
       text:
-        `Nobody in ${first}'s Care Circle has recorded the ${fmtTime(v.time)} dose of ${v.medication.name} (${v.medication.dosage}) today.\n\n` +
+        `Nobody in ${first}'s Care Circle has recorded the ${fmtTime(v.time)} dose of ${v.medication.name} (${v.medication.dosage}) ${day}.\n\n` +
         `This does not mean it was missed, only that it has not been recorded. Please check in with ${first} or whoever is with them, then record it in CareCircle.`,
     })
   }

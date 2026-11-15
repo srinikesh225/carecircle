@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 
-/** Change this one value when a custom domain is connected, then rebuild. */
-export const SITE_URL = 'https://carecircle-pw.vercel.app'
+import { SITE_URL } from './site'
+
+export { SITE_URL }
 export const SITE_NAME = 'CareCircle'
 export const REPO_URL = 'https://github.com/srinikesh225/carecircle'
 export const OG_IMAGE = {

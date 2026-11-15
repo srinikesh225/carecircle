@@ -1,5 +1,16 @@
 import type { Appointment, CareNote, DoseLog, Medication, Patient } from './types.js'
-import { addDays, at, dayKey, fmtDate, fmtTime, indexLogs, partOfDay, scheduleFor, type DoseView } from './schedule.js'
+import {
+  addDays,
+  at,
+  dayKey,
+  fmtDate,
+  fmtTime,
+  indexLogs,
+  openDoses,
+  partOfDay,
+  scheduleFor,
+  type DoseView,
+} from './schedule.js'
 
 /* ------------------------------------------------------------------ adherence */
 
@@ -60,6 +71,8 @@ export interface AttentionItem {
 }
 
 const MS_HOUR = 3_600_000
+/** Yesterday's unrecorded doses stay on "today" screens this long after their time (matches the reminder window). */
+export const CARRY_OVER_MS = 6 * MS_HOUR
 
 /**
  * Rule-based signals for the family and caregivers. Deterministic and explainable:
@@ -75,13 +88,15 @@ export function attentionItems(
   const idx = indexLogs(logs)
   const today = dayKey(now)
 
-  for (const v of scheduleFor(today, meds, idx, now)) {
+  // Today's doses plus yesterday's late ones still inside the reminder window (e.g. a 23:30 dose after midnight).
+  for (const v of openDoses(meds, idx, now, CARRY_OVER_MS)) {
+    const day = v.date === today ? 'today' : 'yesterday'
     if (v.status === 'unconfirmed') {
       items.push({
         key: `unconfirmed:${v.key}`,
         level: 'urgent',
-        title: `${v.medication.name} (${fmtTime(v.time)}) not confirmed`,
-        detail: `Nobody has recorded this dose. It was due at ${fmtTime(v.time)} today. Check in with the patient before assuming it was missed.`,
+        title: `${v.medication.name} (${fmtTime(v.time)}${day === 'yesterday' ? ' yesterday' : ''}) not confirmed`,
+        detail: `Nobody has recorded this dose. It was due at ${fmtTime(v.time)} ${day}. Check in with the patient before assuming it was missed.`,
       })
     } else if (v.status === 'skipped') {
       items.push({

@@ -52,7 +52,11 @@ export default function Appointments() {
           <ul className="divide-y divide-line">
             {past.map((a) => (
               <li key={a.id} className="py-3">
-                <ApptRow appt={a} onEdit={() => setEditing(a)} />
+                {editing !== 'new' && editing?.id === a.id ? (
+                  <ApptForm appt={a} onDone={() => setEditing(null)} />
+                ) : (
+                  <ApptRow appt={a} onEdit={() => setEditing(a)} />
+                )}
               </li>
             ))}
           </ul>

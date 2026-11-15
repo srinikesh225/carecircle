@@ -182,7 +182,7 @@ Signed-out visitors to signed-in routes are redirected to `/`; signed-in visitor
 
 ## 7. Automated tests
 
-Run: `npm test` (52 tests, about 5 s), `npm run test:coverage`, `npm run test:rules` (15 tests; needs Java and the Firebase CLI). CI (`.github/workflows/ci.yml`) runs all of them plus format, lint, typecheck, build and `npm audit` on every push.
+Run: `npm test` (102 tests, about 6 s), `npm run test:coverage`, `npm run test:rules` (24 tests; needs Java and the Firebase CLI). CI (`.github/workflows/ci.yml`) runs all of them plus format, lint, typecheck, build and `npm audit` on every push.
 
 ### 7.1 Domain logic: `src/domain/domain.test.ts` (13)
 

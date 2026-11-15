@@ -39,6 +39,8 @@ export interface Medication {
   startDate: string
   /** YYYY-MM-DD after which the schedule no longer applies (set when stopped). */
   endDate: string | null
+  /** Earlier schedules, kept so a time change or a stop/restart never rewrites past days. */
+  history?: { from: string; until: string; times: string[] }[]
   updatedAt: number
   updatedByName: string
 }

@@ -61,12 +61,17 @@ export default handle(async (req, res) => {
   const { uid, token } = await verifyUser(req)
   rateLimit(`brief:${uid}`, 20, 60_000)
   const body = (req.body ?? {}) as { circleId?: string; facts?: BriefFacts }
-  if (!body.circleId || !body.facts || typeof body.facts.patientName !== 'string')
-    throw new HttpError(400, 'Missing records.')
+  const f = body.facts
+  const wellFormed =
+    !!f &&
+    typeof f.patientName === 'string' &&
+    typeof f.date === 'string' &&
+    [f.doses, f.notes, f.appointments, f.attention].every(Array.isArray)
+  if (!body.circleId || !wellFormed) throw new HttpError(400, 'Missing records.')
   const members = await circleMembers(body.circleId, token)
   if (!members.some((m) => m.uid === uid)) throw new HttpError(403, 'You are not a member of this Care Circle.')
 
-  const facts = body.facts
+  const facts = f // narrowed by the validation above
   const fallback = composeBrief(facts)
   const key = process.env.GEMINI_API_KEY
   if (!key)

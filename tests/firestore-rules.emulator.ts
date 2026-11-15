@@ -53,8 +53,11 @@ beforeEach(async () => {
   })
 })
 
+// Each test user signs in with the same email their member record uses, as real users do.
 const as = (uid: string | null) =>
-  uid ? env.authenticatedContext(uid).firestore() : env.unauthenticatedContext().firestore()
+  uid
+    ? env.authenticatedContext(uid, { email: `${uid}@example.org` }).firestore()
+    : env.unauthenticatedContext().firestore()
 const now = () => Date.now()
 
 describe('reading a circle', () => {
@@ -139,7 +142,15 @@ describe('roles', () => {
   })
 
   it('a dose can only be recorded in your own name', async () => {
-    const log = { medicationId: 'm1', date: '2026-11-15', time: '08:00', status: 'taken', byName: 'cg', at: now() }
+    const log = {
+      medicationId: 'm1',
+      date: '2026-11-15',
+      time: '08:00',
+      status: 'taken',
+      byName: 'cg',
+      byRole: 'caregiver',
+      at: now(),
+    }
     await assertSucceeds(setDoc(doc(as('cg'), 'circles', C, 'doseLogs', 'd1'), { ...log, byUid: 'cg' }))
     await assertFails(setDoc(doc(as('cg'), 'circles', C, 'doseLogs', 'd2'), { ...log, byUid: 'owner' }))
     await assertFails(setDoc(doc(as('cg'), 'circles', C, 'doseLogs', 'd3'), { ...log, byUid: 'cg', status: 'maybe' }))
@@ -167,5 +178,109 @@ describe('the shared timeline cannot be rewritten', () => {
     await assertSucceeds(setDoc(ref, { kind: 'appointment', status: 'pending', at: now() }))
     await assertSucceeds(updateDoc(ref, { status: 'sent' }))
     await assertFails(updateDoc(ref, { kind: 'handover' }))
+  })
+})
+
+describe('audit: gaps beyond the original suite', () => {
+  const memberRef = (who: string, uid: string) => doc(as(who), 'circles', C, 'members', uid)
+
+  it('TC-S14: activity is append-only', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles', C, 'activity', 'a1'), {
+        text: 't',
+        byName: 'cg',
+        byRole: 'caregiver',
+        at: 1,
+      })
+    })
+    await assertFails(updateDoc(doc(as('owner'), 'circles', C, 'activity', 'a1'), { text: 'edited' }))
+    await assertFails(deleteDoc(doc(as('owner'), 'circles', C, 'activity', 'a1')))
+  })
+
+  it('caregivers cannot edit the patient profile or remove other members; family can', async () => {
+    await assertFails(updateDoc(doc(as('cg'), 'circles', C), { 'patient.name': 'Changed' }))
+    await assertFails(deleteDoc(memberRef('cg', 'owner')))
+    await assertSucceeds(updateDoc(doc(as('owner'), 'circles', C), { 'patient.name': 'Changed' }))
+  })
+
+  it('a member who leaves loses access immediately', async () => {
+    await assertSucceeds(deleteDoc(memberRef('cg', 'cg')))
+    await assertFails(getDoc(doc(as('cg'), 'circles', C)))
+  })
+
+  it('records cannot be labelled with someone else’s role or name', async () => {
+    const log = { medicationId: 'm1', date: '2026-11-15', time: '08:00', status: 'taken', byUid: 'cg', at: now() }
+    await assertFails(setDoc(doc(as('cg'), 'circles', C, 'doseLogs', 'f1'), { ...log, byName: 'cg', byRole: 'family' }))
+    await assertFails(
+      setDoc(doc(as('cg'), 'circles', C, 'doseLogs', 'f2'), { ...log, byName: 'owner', byRole: 'caregiver' }),
+    )
+    await assertSucceeds(
+      setDoc(doc(as('cg'), 'circles', C, 'doseLogs', 'f3'), { ...log, byName: 'cg', byRole: 'caregiver' }),
+    )
+    await assertFails(
+      setDoc(doc(as('cg'), 'circles', C, 'activity', 'f4'), {
+        text: 'x',
+        byName: 'owner',
+        byRole: 'family',
+        at: now(),
+      }),
+    )
+    await assertFails(
+      setDoc(doc(as('cg'), 'circles', C, 'notes', 'f5'), {
+        kind: 'note',
+        text: 'x',
+        authorUid: 'cg',
+        authorName: 'owner',
+        authorRole: 'family',
+        at: now(),
+      }),
+    )
+  })
+
+  it('a dose record cannot be back-dated', async () => {
+    const log = {
+      medicationId: 'm1',
+      date: '2026-11-15',
+      time: '08:00',
+      status: 'taken',
+      byUid: 'cg',
+      byName: 'cg',
+      byRole: 'caregiver',
+    }
+    await assertFails(setDoc(doc(as('cg'), 'circles', C, 'doseLogs', 'b1'), { ...log, at: now() - 86_400_000 }))
+  })
+
+  it('a member cannot change their uid or email field', async () => {
+    await assertFails(updateDoc(memberRef('cg', 'cg'), { uid: 'owner' }))
+    await assertFails(updateDoc(memberRef('cg', 'cg'), { email: 'victim@example.org' }))
+  })
+
+  it('a member joins with their own sign-in email, not someone else’s', async () => {
+    await assertFails(
+      setDoc(memberRef('new', 'new'), member('new', 'caregiver', { passcode: PASS, email: 'victim@example.org' })),
+    )
+  })
+
+  it('the demo flag cannot be switched on for a real circle', async () => {
+    await assertFails(updateDoc(doc(as('owner'), 'circles', C), { demo: true }))
+  })
+
+  it('email records: a pending record may be settled once; a failed one cannot be marked sent or rewritten', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'circles', C, 'notifications', 'x1'), {
+        kind: 'appointment',
+        status: 'failed',
+        subject: 's',
+        body: 'b',
+        at: 1,
+        detail: '',
+      })
+    })
+    const ref = doc(as('cg'), 'circles', C, 'notifications', 'x1')
+    await assertFails(updateDoc(ref, { status: 'sent' }))
+    await assertFails(updateDoc(ref, { subject: 'phish' }))
+    await assertSucceeds(updateDoc(ref, { status: 'pending', at: now() })) // retry claim
+    await assertSucceeds(updateDoc(ref, { status: 'sent', detail: 'Sent to 1 of 1 member.' })) // settle
+    await assertFails(updateDoc(ref, { status: 'failed' })) // sent is final
   })
 })

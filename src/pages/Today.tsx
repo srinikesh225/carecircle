@@ -2,8 +2,15 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, CalendarClock, Eye, Mail, Sparkles } from 'lucide-react'
 import { useCircleCtx } from './CircleShell'
-import { adherenceWindow, attentionItems, briefFacts, summarise, type AttentionItem } from '../domain/insights'
-import { dayKey, fmtDate, fmtTime, scheduleFor } from '../domain/schedule'
+import {
+  adherenceWindow,
+  attentionItems,
+  briefFacts,
+  CARRY_OVER_MS,
+  summarise,
+  type AttentionItem,
+} from '../domain/insights'
+import { dayKey, fmtDate, fmtTime, openDoses } from '../domain/schedule'
 import { ROLE_LABEL } from '../domain/types'
 import { Button, Empty, ErrorText, Section, useAction } from '../ui'
 import { DoseRow } from '../components/DoseRow'
@@ -19,7 +26,8 @@ export default function Today() {
 function CircleToday() {
   const { data, now, circleId } = useCircleCtx()
   const today = dayKey(now)
-  const doses = scheduleFor(today, data.medications, data.logs, now)
+  // Includes yesterday's late doses still inside the reminder window, so a 23:30 dose doesn't vanish at midnight.
+  const doses = openDoses(data.medications, data.logs, now, CARRY_OVER_MS)
   const attention = attentionItems(data.medications, data.logs, data.appointments, now)
   const week = adherenceWindow(data.medications, data.logs, now)
   const sum = summarise(week)

@@ -60,7 +60,9 @@ function Members() {
                 variant="danger"
                 busy={busy}
                 onClick={() =>
-                  confirm(`Remove ${m.name} from the circle?`) && run(() => removeMember(circleId, actor, m))
+                  confirm(
+                    `Remove ${m.name} from the circle? The passcode will also change, so they cannot rejoin with it.`,
+                  ) && run(() => removeMember(circleId, actor, m))
                 }
               >
                 Remove

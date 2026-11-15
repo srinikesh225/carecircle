@@ -178,3 +178,68 @@ describe('rate limiting', () => {
     expect(() => rateLimit('test:user', 3, 60_000, t + 60_001)).not.toThrow()
   })
 })
+
+describe('audit: additional API cases', () => {
+  const msg = { circleId: 'ABC123', subject: 'Reminder', text: 'Cardiology tomorrow at 11 AM.' }
+  const two = [
+    { uid: 'u1', name: 'Priya', email: 'priya@example.org', role: 'family' },
+    { uid: 'u2', name: 'Ravi', email: 'ravi@example.org', role: 'caregiver' },
+  ]
+
+  it('TC-AI06: a model that times out falls through to the next one', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'test-key')
+    fetchMock
+      .mockRejectedValueOnce(Object.assign(new Error('timed out'), { name: 'TimeoutError' }))
+      .mockResolvedValueOnce(gemini('Ramesh has one unconfirmed dose today.'))
+    const out = await call(brief, { circleId: 'ABC123', facts })
+    expect(out.body).toMatchObject({ source: 'gemini' })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('TC-AI03: an invalid Gemini key falls back to the records', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'bad-key')
+    fetchMock.mockResolvedValue(googleError(400, 'API key not valid'))
+    expect((await call(brief, { circleId: 'ABC123', facts })).body).toMatchObject({ source: 'records' })
+  })
+
+  it('malformed brief input is a 400, not a server error', async () => {
+    expect((await call(brief, { circleId: 'ABC123', facts: { patientName: 'X' } })).status).toBe(400)
+  })
+
+  it('TC-EM05: several real recipients each get their own email', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    members.list = two
+    fetchMock.mockResolvedValue(new Response('{}', { status: 200 }))
+    const body = (await call(notify, msg)).body as { status: string; detail: string }
+    expect(body).toMatchObject({ status: 'sent', detail: 'Sent to 2 of 2 members.' })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('TC-EM02/EM07: an invalid key or every recipient failing reports failed, not sent', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_bad')
+    members.list = two
+    const refused = () => new Response(JSON.stringify({ message: 'API key is invalid' }), { status: 401 })
+    fetchMock.mockResolvedValueOnce(refused()).mockResolvedValueOnce(refused())
+    const body = (await call(notify, msg)).body as { status: string; detail: string }
+    expect(body.status).toBe('failed')
+    expect(body.detail).toContain('Sent to 0 of 2 members.')
+    expect(body.detail).toContain('401: API key is invalid')
+  })
+
+  it('an email provider that does not respond is reported per recipient', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    fetchMock.mockRejectedValue(Object.assign(new Error('timed out'), { name: 'TimeoutError' }))
+    const body = (await call(notify, msg)).body as { status: string; detail: string }
+    expect(body).toMatchObject({ status: 'failed' })
+    expect(body.detail).toContain('email service did not respond')
+  })
+
+  it('the email link always points at CareCircle; a link in the request is ignored', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_test')
+    fetchMock.mockResolvedValue(new Response('{}', { status: 200 }))
+    await call(notify, { ...msg, appUrl: 'https://evil.example.net/login' })
+    const sent = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string) as { html: string }
+    expect(sent.html).toContain('href="https://carecircle-pw.vercel.app/c/ABC123"')
+    expect(sent.html).not.toContain('evil.example.net')
+  })
+})

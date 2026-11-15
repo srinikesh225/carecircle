@@ -30,7 +30,7 @@ function tabsFor(role: Role): [Section, string][] {
       ]
 }
 
-interface Ctx {
+export interface Ctx {
   circleId: string
   data: CircleData
   actor: Actor
@@ -38,7 +38,8 @@ interface Ctx {
   canEditPlan: boolean
   demo: boolean
 }
-const CircleCtx = createContext<Ctx | null>(null)
+/** Exported for component tests; the app provides it through CircleShell. */
+export const CircleCtx = createContext<Ctx | null>(null)
 export const useCircleCtx = () => {
   const c = useContext(CircleCtx)
   if (!c) throw new Error('outside circle')

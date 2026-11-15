@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Volume2, Square } from 'lucide-react'
 import { useCircleCtx } from './CircleShell'
-import { dayKey, fmtDate, fmtTime, scheduleFor } from '../domain/schedule'
+import { at, dayKey, fmtDate, fmtTime, openDoses } from '../domain/schedule'
+import { CARRY_OVER_MS } from '../domain/insights'
 import { addNote } from '../data/circle'
 import { DoseRow } from '../components/DoseRow'
 import { Button, Empty, ErrorText, Section, Textarea, useAction } from '../ui'
@@ -14,9 +15,13 @@ function greeting(d: Date) {
 export default function PatientHome() {
   const { data, now, actor, circleId } = useCircleCtx()
   const today = dayKey(now)
-  const doses = scheduleFor(today, data.medications, data.logs, now)
-  const pending = doses.filter((d) => d.status === 'due' || d.status === 'unconfirmed')
-  const nextAppt = data.appointments.find((a) => a.date >= today)
+  const doses = openDoses(data.medications, data.logs, now, CARRY_OVER_MS)
+  // Only doses in their window are "to take now". An unconfirmed dose may already have been taken and
+  // simply not recorded, so it is never presented as something to take: that could cause a double dose.
+  const takeNow = doses.filter((d) => d.status === 'due')
+  const notRecorded = doses.filter((d) => d.status === 'unconfirmed')
+  const nextAppt = data.appointments.find((a) => at(a.date, a.time).getTime() >= now.getTime())
+  const plural = (n: number) => `${n} medicine${n > 1 ? 's' : ''}`
   const first = actor.name.split(' ')[0]
   const [speaking, setSpeaking] = useState(false)
   const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
@@ -29,14 +34,18 @@ export default function PatientHome() {
       return
     }
     const parts = [`${greeting(now)}, ${first}.`]
-    if (pending.length)
+    if (takeNow.length)
       parts.push(
-        `You have ${pending.length} medicine${pending.length > 1 ? 's' : ''} to take now: ${pending.map((d) => `${d.medication.name}, ${d.medication.dosage}`).join('; ')}.`,
+        `You have ${plural(takeNow.length)} to take now: ${takeNow.map((d) => `${d.medication.name}, ${d.medication.dosage}`).join('; ')}.`,
+      )
+    if (notRecorded.length)
+      parts.push(
+        `${plural(notRecorded.length)} from earlier ${notRecorded.length > 1 ? 'have' : 'has'} not been recorded: ${notRecorded.map((d) => `${d.medication.name} at ${fmtTime(d.time)}`).join('; ')}. If you already took it, press I took it. If you are not sure, check with your family before taking it.`,
       )
     const later = doses.filter((d) => d.status === 'upcoming')
     if (later.length)
       parts.push(`Later today: ${later.map((d) => `${d.medication.name} at ${fmtTime(d.time)}`).join('; ')}.`)
-    if (!pending.length && !later.length) parts.push('You have no more medicines to take today.')
+    if (!takeNow.length && !notRecorded.length && !later.length) parts.push('You have no more medicines to take today.')
     if (nextAppt)
       parts.push(
         `Your next appointment is ${nextAppt.title} on ${fmtDate(nextAppt.date, { weekday: 'long', day: 'numeric', month: 'long' })} at ${fmtTime(nextAppt.time)}.`,
@@ -69,13 +78,20 @@ export default function PatientHome() {
         )}
       </div>
 
-      <div className={`rounded-2xl p-6 ${pending.length ? 'bg-info-soft' : 'bg-sage'}`} role="status">
+      <div
+        className={`rounded-2xl p-6 ${takeNow.length || notRecorded.length ? 'bg-info-soft' : 'bg-sage'}`}
+        role="status"
+      >
         <p className="font-display text-3xl font-bold">
-          {pending.length
-            ? `${pending.length} medicine${pending.length > 1 ? 's' : ''} to take now`
-            : 'Nothing to take right now'}
+          {takeNow.length ? `${plural(takeNow.length)} to take now` : 'Nothing to take right now'}
         </p>
-        <p className="text-ink-2">
+        {notRecorded.length > 0 && (
+          <p className="mt-2 font-bold">
+            {plural(notRecorded.length)} from earlier not recorded yet. If you already took it, press “I took it”. If
+            you are not sure, check with your family before taking it.
+          </p>
+        )}
+        <p className="mt-1 text-ink-2">
           When you take a medicine, press “I took it”. Your family and caregivers will see it straight away.
         </p>
       </div>

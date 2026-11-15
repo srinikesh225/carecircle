@@ -49,7 +49,6 @@ export async function notifyCircle(
       circleId,
       subject,
       text,
-      appUrl: `${location.origin}/c/${circleId}`,
     })
     await settleNotification(
       circleId,
