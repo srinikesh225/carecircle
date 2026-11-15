@@ -1,11 +1,23 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Link, NavLink, Navigate, Outlet, useParams } from 'react-router-dom'
+import { Link, NavLink, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { Phone } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useCircle, type Actor, type CircleData } from '../data/circle'
 import { ROLE_LABEL } from '../domain/types'
 import { Logo } from '../components/Logo'
+import { Breadcrumbs } from '../components/Breadcrumbs'
+import { SiteFooter } from '../components/SiteFooter'
 import { useReminderEngine } from '../reminders'
+import { usePageMeta } from '../seo'
+import type { Role } from '../domain/types'
+
+type Section = '' | 'medications' | 'appointments' | 'handover' | 'circle'
+
+function tabsFor(role: Role): [Section, string][] {
+  return role === 'patient'
+    ? [['', 'My day'], ['medications', 'My medicines'], ['appointments', 'Appointments'], ['circle', 'My people']]
+    : [['', 'Today'], ['medications', 'Medications'], ['appointments', 'Appointments'], ['handover', 'Handover & notes'], ['circle', 'People & profile']]
+}
 
 interface Ctx {
   circleId: string
@@ -37,6 +49,11 @@ export default function CircleShell() {
   const { user } = useAuth()
   const { data, error } = useCircle(circleId, user!.uid)
   const now = useNow()
+  const section = (useLocation().pathname.split('/')[3] ?? '') as Section
+  const label = data?.me ? (tabsFor(data.me.role).find(([s]) => s === section)?.[1] ?? 'Today') : ''
+  usePageMeta({
+    title: error ? 'Care Circle unavailable | CareCircle' : data ? `${label} · ${data.patient.name} | CareCircle` : 'Loading care record | CareCircle',
+  })
 
   if (error) {
     return (
@@ -54,19 +71,17 @@ export default function CircleShell() {
   const ctx: Ctx = { circleId, data, actor, now, canEditPlan: actor.role !== 'caregiver', demo: data.demo }
   return (
     <CircleCtx.Provider value={ctx}>
-      <ShellChrome />
+      <ShellChrome section={section} label={label} />
     </CircleCtx.Provider>
   )
 }
 
-function ShellChrome() {
+function ShellChrome({ section, label }: { section: Section; label: string }) {
   const { circleId, data, actor, demo } = useCircleCtx()
   useReminderEngine()
   const p = data.patient
-  const tabs =
-    actor.role === 'patient'
-      ? [['', 'My day'], ['medications', 'My medicines'], ['appointments', 'Appointments'], ['circle', 'My people']]
-      : [['', 'Today'], ['medications', 'Medications'], ['appointments', 'Appointments'], ['handover', 'Handover & notes'], ['circle', 'People & profile']]
+  const tabs = tabsFor(actor.role)
+  const isPatient = actor.role === 'patient'
 
   return (
     <div className="min-h-screen">
@@ -81,8 +96,16 @@ function ShellChrome() {
             </div>
           </div>
           <div className="flex flex-wrap items-end justify-between gap-3 pb-3 pt-2">
-            {actor.role !== 'patient' && (
+            {/* One h1 per screen: the patient's name for family and caregivers; for the patient, the section
+                name (their "My day" screen supplies its own greeting h1). */}
+            {isPatient ? (
+              section !== '' && <h1 className="text-2xl font-bold sm:text-3xl">{label}</h1>
+            ) : (
               <div>
+                <Breadcrumbs
+                  className="mb-1"
+                  items={[{ label: 'Your circles', to: '/circles' }, { label: p.name, to: section ? `/c/${circleId}` : undefined }, ...(section ? [{ label }] : [])]}
+                />
                 <h1 className="text-2xl font-bold sm:text-3xl">{p.name}</h1>
                 <p className="text-ink-2">
                   {[p.age ? `${p.age} years` : null, p.conditions || null].filter(Boolean).join(' · ') || 'Profile details not added'}
@@ -132,13 +155,7 @@ function ShellChrome() {
       <main id="main" className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <Outlet />
       </main>
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-2 px-4 py-5 text-sm text-ink-2 sm:px-6">
-          <span>CareCircle records what the circle enters. It does not give medical advice.</span>
-          <Link to="/privacy" className="underline">Privacy</Link>
-          <Link to="/terms" className="underline">Terms</Link>
-        </div>
-      </footer>
+      <SiteFooter note="CareCircle records what the circle enters. It does not give medical advice." />
     </div>
   )
 }

@@ -9,14 +9,17 @@ import { DEMO_PATIENT } from '../data/demo'
 import { ROLE_LABEL, type Patient, type Role } from '../domain/types'
 import { Button, ErrorText, Field, Input, Select, Textarea, useAction } from '../ui'
 import { Logo } from '../components/Logo'
+import { SiteFooter } from '../components/SiteFooter'
+import { usePageMeta } from '../seo'
 
 export default function Circles() {
   const { user } = useAuth()
   const circles = useMyCircles(user)
   const [panel, setPanel] = useState<'create' | 'join' | null>(null)
+  usePageMeta({ title: 'Your Care Circles | CareCircle' })
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <header className="border-b border-line bg-card">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
           <Logo to="/circles" />
@@ -26,7 +29,7 @@ export default function Circles() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
         <h1 className="text-3xl font-bold">Your Care Circles</h1>
         <p className="mt-1 text-ink-2">A circle is one person’s shared care record and the people allowed to see it.</p>
 
@@ -65,6 +68,7 @@ export default function Circles() {
         {panel === 'create' && <CreateForm />}
         {panel === 'join' && <JoinForm />}
       </main>
+      <SiteFooter />
     </div>
   )
 }

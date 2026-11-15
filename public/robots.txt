@@ -1,0 +1,8 @@
+# CareCircle: public pages are indexable; signed-in care records are private.
+User-agent: *
+Allow: /
+Disallow: /circles
+Disallow: /c/
+Disallow: /api/
+
+Sitemap: https://carecircle-pw.vercel.app/sitemap.xml

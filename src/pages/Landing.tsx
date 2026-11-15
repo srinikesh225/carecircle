@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { auth } from '../data/firebase'
 import { Button, ErrorText, Field, Input, useAction } from '../ui'
 import { Logo } from '../components/Logo'
+import { SiteFooter } from '../components/SiteFooter'
+import { PUBLIC_PAGES, usePageMeta } from '../seo'
 
 type Mode = 'signin' | 'signup' | 'reset'
 
 export default function Landing() {
+  usePageMeta(PUBLIC_PAGES.home)
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
@@ -48,13 +48,7 @@ export default function Landing() {
         </div>
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-2 px-4 py-6 text-sm text-ink-2 sm:px-6">
-          <span>CareCircle · PromptWars × Catalyst prototype</span>
-          <Link to="/privacy" className="underline">Privacy</Link>
-          <Link to="/terms" className="underline">Terms</Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }
@@ -70,6 +64,11 @@ function AuthCard() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     await run(async () => {
+      // Loaded on demand: the landing page itself ships without the auth SDK.
+      const [{ auth }, { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile }] = await Promise.all([
+        import('../data/firebase'),
+        import('firebase/auth'),
+      ])
       if (mode === 'signin') await signInWithEmailAndPassword(auth, email.trim(), password)
       else if (mode === 'signup') {
         if (!name.trim()) throw new Error('Please enter your name so the circle knows who recorded what.')

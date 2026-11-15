@@ -60,6 +60,15 @@ Vercel serverless functions (api/)
 - **Email recipients come from the database, never from the request.** The endpoint can only email members of a circle the caller belongs to.
 - **Duplicate-free reminders.** Every email first claims a deterministic record ID in a Firestore transaction. If two members have the app open, only one email goes out.
 
+## Pages, SEO and performance
+
+- **Prerendered public pages.** `/`, `/privacy`, `/terms` and the 404 page are rendered to static HTML at build time ([`scripts/prerender.mjs`](scripts/prerender.mjs)). Each has its own title, description, canonical URL, Open Graph/Twitter tags and JSON-LD (WebSite, WebApplication, BreadcrumbList), all from one list in [`src/seo.ts`](src/seo.ts). Unknown URLs return a real HTTP 404.
+- **Private screens are not indexed.** `/circles` and `/c/*` are served from an empty `noindex` app shell and disallowed in `robots.txt`.
+- **`sitemap.xml`** is generated from the same page list; **`robots.txt`**, **`llms.txt`** and a web app manifest are in `public/`.
+- **Small first load.** Signed-in screens and the Firestore SDK are code-split and never downloaded on public pages. The auth SDK loads after first paint. There are no production source maps.
+- **Brand images** (favicon, app icons, 1200×630 share image) are rendered from HTML in `scripts/assets/` with `node scripts/render-assets.mjs`.
+- To move to a custom domain, change `SITE_URL` in `src/seo.ts` and the `Sitemap:` line in `public/robots.txt`, then rebuild.
+
 ## Data model
 
 ```

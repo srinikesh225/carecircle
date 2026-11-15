@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 // Firebase web config is public by design (it identifies the project; access is enforced by
 // Auth + firestore.rules). Env vars allow pointing a fork at its own project.
@@ -13,9 +12,7 @@ export const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '1:1004662880753:web:325296485ca6be6a4bec50',
 }
 
+// Auth only. Firestore lives in ./db so the public pages never download the database SDK;
+// this module itself is loaded on demand (see src/auth.tsx).
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
-// Local cache keeps the last-known schedule readable on a flaky connection and queues writes.
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-})

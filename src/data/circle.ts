@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore'
 import type { User } from 'firebase/auth'
 import { useEffect, useState } from 'react'
-import { db } from './firebase'
+import { db } from './db'
 import type { Activity, Appointment, CareNote, DoseLog, Medication, Member, NotificationRecord, Patient, Role } from '../domain/types'
 import { addDays, dayKey, doseKey } from '../domain/schedule'
 import { demoSeed } from './demo'

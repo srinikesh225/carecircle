@@ -6,7 +6,9 @@ export function AdherenceChart({ days }: { days: DayAdherence[] }) {
   const max = Math.max(1, ...days.map((d) => d.scheduled))
   const H = 120
   return (
-    <figure>
+    // `relative` anchors the screen-reader-only table inside the chart; otherwise it is positioned
+    // against the page and widens the document on phones.
+    <figure className="relative">
       <div className="flex items-end gap-2 sm:gap-3" style={{ height: H + 48 }} aria-hidden>
         {days.map((d) => {
           const seg = (n: number) => (n / max) * H
@@ -30,7 +32,9 @@ export function AdherenceChart({ days }: { days: DayAdherence[] }) {
         <Key cls="bg-alert" label="Not confirmed" />
         <Key cls="bg-line" label="Still to come" />
       </figcaption>
-      <table className="sr-only">
+      {/* Tables ignore sr-only's 1px width, so the wrapper carries it. */}
+      <div className="sr-only">
+      <table>
         <caption>Doses by day for the last 7 days</caption>
         <thead><tr><th>Day</th><th>Scheduled</th><th>Taken</th><th>Not taken</th><th>Not confirmed</th><th>Percent taken</th></tr></thead>
         <tbody>
@@ -39,6 +43,7 @@ export function AdherenceChart({ days }: { days: DayAdherence[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </figure>
   )
 }

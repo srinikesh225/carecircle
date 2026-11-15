@@ -1,0 +1,21 @@
+# CareCircle
+
+> CareCircle is a web app that gives an older adult, their family and their caregivers one shared, live record of medicines, doses, appointments and caregiver shift handovers. It was built for the PromptWars × Catalyst "Elderly Care & Medication Management Platform" challenge. It is a prototype, not a medical device, and it does not give medical advice.
+
+Key facts:
+
+- Each patient has a "Care Circle". People join with an account plus that circle's passcode, as Patient, Family or Caregiver. Firestore security rules enforce membership and roles on the server.
+- A dose can be recorded as taken or not taken (with a reason). A dose nobody records within 60 minutes of its time is shown as "not confirmed", never assumed missed, and circle members are emailed.
+- The shift handover lists everything recorded since the last sign-off: doses and who gave them, what is outstanding, notes, and upcoming appointments.
+- The daily care brief is written by Google Gemini from that day's records only, with server-side guards against medical advice. Without an AI key it is composed directly from the records and labelled as such.
+- Signed-in care records are private and are not available to crawlers.
+
+## Pages
+
+- [Home](https://carecircle-pw.vercel.app/): what CareCircle does for patients, family and caregivers, plus sign-in
+- [Privacy Policy](https://carecircle-pw.vercel.app/privacy): what is stored, who can see it, and the services used
+- [Terms of Use](https://carecircle-pw.vercel.app/terms): not medical advice; reminders are best-effort
+
+## Source
+
+- [GitHub repository](https://github.com/srinikesh225/carecircle): code, security rules, architecture and known limitations (README)

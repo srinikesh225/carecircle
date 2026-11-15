@@ -6,7 +6,7 @@
   "description": "CareCircle — shared medication, appointment and caregiver-handover platform for an elderly person, their family and caregivers.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build --ssr src/prerender.tsx --outDir dist-ssr && node scripts/prerender.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
