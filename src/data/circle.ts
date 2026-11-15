@@ -31,6 +31,7 @@ import type {
 } from '../domain/types'
 import { addDays, dayKey, doseKey } from '../domain/schedule'
 import { demoSeed } from './demo'
+import { canRetry, RETRY_AFTER_MS } from '../domain/reminders'
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -421,15 +422,6 @@ export async function removeMember(circleId: string, actor: Actor, member: Membe
     await batch.commit()
   }
 }
-
-/**
- * A reminder that was not sent (email service not configured yet, provider error, or a tab that closed
- * mid-send) may be claimed again after this cooldown, so adding the email key later still delivers it
- * and a persistent failure is retried at most every 10 minutes. Sent reminders are never repeated.
- */
-export const RETRY_AFTER_MS = 10 * 60_000
-export const canRetry = (n: Pick<NotificationRecord, 'status' | 'at'>, now = Date.now(), after = RETRY_AFTER_MS) =>
-  n.status !== 'sent' && now - n.at >= after
 
 /**
  * Claims the right to send a notification for one event. Returns false if another member
