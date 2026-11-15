@@ -27,17 +27,25 @@ export default handle(async (req, res) => {
 
   const model = process.env.GEMINI_MODEL ?? 'gemini-3.8-flash'
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: [{ role: 'user', parts: [{ text: `Facts:\n${JSON.stringify(facts).slice(0, 12000)}` }] }],
-        // Thinking models (2.5 and later) count their reasoning against this limit, so it is generous;
-        // the system prompt is what keeps the brief to 3-5 sentences.
-        generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
-      }),
-    })
+    const call = () =>
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM }] },
+          contents: [{ role: 'user', parts: [{ text: `Facts:
+${JSON.stringify(facts).slice(0, 12000)}` }] }],
+          // Thinking models (2.5 and later) count their reasoning against this limit, so it is generous;
+          // the system prompt is what keeps the brief to 3-5 sentences.
+          generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+        }),
+      })
+    let r = await call()
+    // "High demand" (503) and rate limits (429) are usually momentary: one retry after a short pause.
+    if (r.status === 503 || r.status === 429) {
+      await new Promise((done) => setTimeout(done, 1200))
+      r = await call()
+    }
     if (!r.ok) {
       // Log Google's error (never the key) so a rejected key or unknown model shows up in Vercel's function logs.
       const err = (await r.json().catch(() => null)) as { error?: { status?: string; message?: string } } | null
