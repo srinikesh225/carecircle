@@ -12,8 +12,10 @@ export function DoseRow({ v, large = false }: { v: DoseView; large?: boolean }) 
   const [asking, setAsking] = useState(false)
   const [reason, setReason] = useState('')
   const { busy, error, run } = useAction()
-  const open = v.status === 'due' || v.status === 'unconfirmed' || v.status === 'upcoming'
   const isPatient = actor.role === 'patient'
+  // The patient only sees buttons once a dose is due, so tonight's dose can't be ticked by mistake in the morning.
+  // Family and caregivers may record ahead (e.g. a caregiver giving the evening dose early before leaving).
+  const open = v.status === 'due' || v.status === 'unconfirmed' || (v.status === 'upcoming' && !isPatient)
 
   const mark = (status: 'taken' | 'skipped', why = '') => run(() => recordDose(circleId, actor, v.medication, v.date, v.time, status, why)).then(() => setAsking(false))
 

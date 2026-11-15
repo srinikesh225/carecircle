@@ -46,7 +46,7 @@ export default function PatientHome() {
     <div className="mx-auto flex max-w-3xl flex-col gap-6 text-[19px]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold sm:text-4xl">{greeting(now)}, {first}</h2>
+          <h1 className="text-3xl font-bold sm:text-4xl">{greeting(now)}, {first}</h1>
           <p className="mt-1 text-ink-2">{fmtDate(today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
         {canSpeak && (

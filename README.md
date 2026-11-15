@@ -81,6 +81,7 @@ circles/{circleId}                  { patient, createdBy, demo }
 npm install
 npm run dev        # http://localhost:5173, with /api served by the Vite dev server
 npm test           # domain tests
+node scripts/rules-check.mjs <CIRCLE> <PASSCODE> [--record]   # live security-rule checks as real users
 npm run build      # typecheck + production build
 ```
 

@@ -17,6 +17,12 @@ service cloud.firestore {
     function isMember(c) { return signedIn() && exists(memberPath(c)); }
     function myRole(c) { return get(memberPath(c)).data.role; }
     function canEditPlan(c) { return isMember(c) && myRole(c) in ['patient', 'family']; }
+    // Write-side variants. In a batched write, exists()/get() see the database BEFORE the batch,
+    // so a circle's creator would not yet count as a member for the circle's first records.
+    // existsAfter()/getAfter() see the batch's result. Membership itself is still gated below
+    // (creator or correct passcode), so this does not let anyone in.
+    function isMemberW(c) { return signedIn() && existsAfter(memberPath(c)); }
+    function canEditPlanW(c) { return isMemberW(c) && getAfter(memberPath(c)).data.role in ['patient', 'family']; }
     function validRole(r) { return r in ['patient', 'family', 'caregiver']; }
     function isNow(t) { return t is int && t > request.time.toMillis() - 300000 && t < request.time.toMillis() + 300000; }
 
@@ -27,13 +33,13 @@ service cloud.firestore {
     match /circles/{c} {
       allow read: if isMember(c);
       allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if canEditPlan(c) && request.resource.data.createdBy == resource.data.createdBy;
+      allow update: if canEditPlanW(c) && request.resource.data.createdBy == resource.data.createdBy;
       allow delete: if false;
 
       match /secret/{doc} {
         allow read: if isMember(c);
         allow create: if signedIn() && getAfter(circlePath(c)).data.createdBy == request.auth.uid;
-        allow update: if canEditPlan(c) && request.resource.data.passcode is string && request.resource.data.passcode.size() >= 8;
+        allow update: if canEditPlanW(c) && request.resource.data.passcode is string && request.resource.data.passcode.size() >= 8;
         allow delete: if false;
       }
 
@@ -50,34 +56,34 @@ service cloud.firestore {
           );
         // Members may update their own name/email but not promote themselves.
         allow update: if signedIn() && uid == request.auth.uid && request.resource.data.role == resource.data.role;
-        allow delete: if signedIn() && (uid == request.auth.uid || canEditPlan(c));
+        allow delete: if signedIn() && (uid == request.auth.uid || canEditPlanW(c));
       }
 
       match /medications/{id} {
         allow read: if isMember(c);
-        allow create, update: if canEditPlan(c)
+        allow create, update: if canEditPlanW(c)
           && request.resource.data.name is string && request.resource.data.name.size() > 0
           && request.resource.data.times is list && request.resource.data.times.size() > 0;
-        allow delete: if canEditPlan(c);
+        allow delete: if canEditPlanW(c);
       }
 
       match /appointments/{id} {
         allow read: if isMember(c);
-        allow create, update: if isMember(c) && request.resource.data.title is string && request.resource.data.date is string;
-        allow delete: if isMember(c);
+        allow create, update: if isMemberW(c) && request.resource.data.title is string && request.resource.data.date is string;
+        allow delete: if isMemberW(c);
       }
 
       match /doseLogs/{id} {
         allow read: if isMember(c);
-        allow create, update: if isMember(c)
+        allow create, update: if isMemberW(c)
           && request.resource.data.byUid == request.auth.uid
           && request.resource.data.status in ['taken', 'skipped'];
-        allow delete: if isMember(c);
+        allow delete: if isMemberW(c);
       }
 
       match /notes/{id} {
         allow read: if isMember(c);
-        allow create: if isMember(c)
+        allow create: if isMemberW(c)
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.kind in ['note', 'handover']
           && request.resource.data.text is string && request.resource.data.text.size() > 0
@@ -88,7 +94,7 @@ service cloud.firestore {
 
       match /activity/{id} {
         allow read: if isMember(c);
-        allow create: if isMember(c) && isNow(request.resource.data.at);
+        allow create: if isMemberW(c) && isNow(request.resource.data.at);
         allow update, delete: if false;
       }
 
@@ -96,8 +102,8 @@ service cloud.firestore {
       // given event sends the email; later attempts fail the create and do nothing.
       match /notifications/{id} {
         allow read: if isMember(c);
-        allow create: if isMember(c) && request.resource.data.status == 'pending';
-        allow update: if isMember(c) && request.resource.data.kind == resource.data.kind;
+        allow create: if isMemberW(c) && request.resource.data.status == 'pending';
+        allow update: if isMemberW(c) && request.resource.data.kind == resource.data.kind;
         allow delete: if false;
       }
     }

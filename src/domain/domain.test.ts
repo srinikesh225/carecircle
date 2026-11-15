@@ -110,7 +110,7 @@ describe('daily brief fallback', () => {
       patient: { name: 'Ramesh Kumar', age: 72, conditions: '', allergies: '', emergencyName: '', emergencyPhone: '', preferences: '' },
       meds: [bp, vitd],
       logs: [log(bp, TODAY, '08:00', 'taken')],
-      notes: [],
+      notes: [{ id: 'n', kind: 'note', text: 'Ate well.', authorUid: 'a', authorName: 'Anjali', authorRole: 'caregiver', at: NOW.getTime() - 60_000 }],
       appointments: [],
       now: NOW,
     })
@@ -118,5 +118,6 @@ describe('daily brief fallback', () => {
     expect(text).toContain('Ramesh has taken 1 of 3 scheduled doses today.')
     expect(text).toContain('not been confirmed')
     expect(text).not.toMatch(/missed/i)
+    expect(text).toContain('Anjali wrote "Ate well".')
   })
 })

@@ -3,7 +3,7 @@ import { ClipboardCopy, Mail } from 'lucide-react'
 import { useCircleCtx } from './CircleShell'
 import { addNote } from '../data/circle'
 import { buildHandover, handoverText } from '../domain/insights'
-import { fmtDate, fmtTime } from '../domain/schedule'
+import { dayKey, fmtDate, fmtTime } from '../domain/schedule'
 import { ROLE_LABEL } from '../domain/types'
 import { Button, Empty, ErrorText, Section, StatusBadge, Textarea, useAction } from '../ui'
 import { notifyCircle } from '../reminders'
@@ -42,7 +42,7 @@ export default function Handover() {
         </Block>
         <Block title="Recorded during this period">
           {h.recorded.length === 0 ? <p>No doses recorded.</p> : h.recorded.map((l) => (
-            <Line key={l.id} left={fmtTime(l.time)}>
+            <Line key={l.id} left={l.date === dayKey(now) ? fmtTime(l.time) : `${fmtDate(l.date, { weekday: 'short' })} ${fmtTime(l.time)}`}>
               {l.medicationName} <StatusBadge status={l.status} /> <span className="text-ink-2">by {l.byName}{l.reason ? `: ${l.reason}` : ''}</span>
             </Line>
           ))}
@@ -84,7 +84,7 @@ const Block = ({ title, children }: { title: string; children: React.ReactNode }
   </div>
 )
 const Line = ({ left, children }: { left: string; children: React.ReactNode }) => (
-  <p className="flex gap-3"><span className="tabular w-20 shrink-0 text-ink-2">{left}</span><span className="min-w-0">{children}</span></p>
+  <p className="flex gap-3"><span className="tabular w-28 shrink-0 text-ink-2">{left}</span><span className="min-w-0">{children}</span></p>
 )
 
 function Notes() {

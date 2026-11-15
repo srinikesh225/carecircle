@@ -81,12 +81,14 @@ function ShellChrome() {
             </div>
           </div>
           <div className="flex flex-wrap items-end justify-between gap-3 pb-3 pt-2">
-            <div>
-              <h1 className="text-2xl font-bold sm:text-3xl">{p.name}</h1>
-              <p className="text-ink-2">
-                {[p.age ? `${p.age} years` : null, p.conditions || null].filter(Boolean).join(' · ') || 'Profile details not added'}
-              </p>
-            </div>
+            {actor.role !== 'patient' && (
+              <div>
+                <h1 className="text-2xl font-bold sm:text-3xl">{p.name}</h1>
+                <p className="text-ink-2">
+                  {[p.age ? `${p.age} years` : null, p.conditions || null].filter(Boolean).join(' · ') || 'Profile details not added'}
+                </p>
+              </div>
+            )}
             {p.emergencyPhone && (
               <a href={`tel:${p.emergencyPhone.replace(/\s/g, '')}`} className="inline-flex items-center gap-2 rounded border border-alert/40 px-3 py-2 font-bold text-alert hover:bg-alert-soft">
                 <Phone className="h-4 w-4" aria-hidden />
@@ -120,7 +122,7 @@ function ShellChrome() {
           )}
           {p.preferences && (
             <p className="rounded border-l-4 border-brand bg-brand-soft px-4 py-3">
-              <span className="font-bold">{p.name.split(' ')[0]}’s wishes: </span>
+              <span className="font-bold">{actor.role === 'patient' ? 'Your wishes, shown to everyone in your circle: ' : `${p.name.split(' ')[0]}’s wishes: `}</span>
               {p.preferences}
             </p>
           )}
