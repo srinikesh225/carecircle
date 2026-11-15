@@ -46,7 +46,7 @@ export default function PatientHome() {
     <div className="mx-auto flex max-w-3xl flex-col gap-6 text-[19px]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">{greeting(now)}, {first}</h1>
+          <h1 className="font-display text-4xl font-bold sm:text-5xl">{greeting(now)}, {first}<span className="text-accent" aria-hidden="true">.</span></h1>
           <p className="mt-1 text-ink-2">{fmtDate(today, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
         {canSpeak && (
@@ -57,8 +57,8 @@ export default function PatientHome() {
         )}
       </div>
 
-      <div className={`rounded-lg border p-5 ${pending.length ? 'border-info/40 bg-info-soft' : 'border-brand/30 bg-brand-soft'}`} role="status">
-        <p className="text-2xl font-bold">
+      <div className={`rounded-2xl p-6 ${pending.length ? 'bg-info-soft' : 'bg-sage'}`} role="status">
+        <p className="font-display text-3xl font-bold">
           {pending.length ? `${pending.length} medicine${pending.length > 1 ? 's' : ''} to take now` : 'Nothing to take right now'}
         </p>
         <p className="text-ink-2">When you take a medicine, press “I took it”. Your family and caregivers will see it straight away.</p>

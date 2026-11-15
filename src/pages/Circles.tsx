@@ -20,33 +20,33 @@ export default function Circles() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-line bg-card">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
+      <div className="px-3 pt-3 sm:px-5 sm:pt-5">
+        <header className="mx-auto flex max-w-4xl items-center justify-between gap-4 rounded-2xl bg-card px-4 py-3 sm:rounded-3xl sm:px-7 sm:py-4">
           <Logo to="/circles" />
           <div className="flex items-center gap-3 text-[15px]">
             <span className="hidden text-ink-2 sm:inline">{user?.displayName ?? user?.email}</span>
             <Button variant="secondary" size="sm" onClick={() => signOut(auth)}>Sign out</Button>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
-        <h1 className="text-3xl font-bold">Your Care Circles</h1>
+        <h1 className="font-display text-4xl font-bold">Your Care Circles<span className="text-accent" aria-hidden="true">.</span></h1>
         <p className="mt-1 text-ink-2">A circle is one person’s shared care record and the people allowed to see it.</p>
 
         <div className="mt-6">
           {circles === null ? (
             <p className="text-ink-2">Loading…</p>
           ) : circles.length === 0 ? (
-            <p className="rounded border border-dashed border-line px-4 py-6 text-ink-2">
+            <p className="rounded-2xl border border-dashed border-line px-5 py-6 text-ink-2">
               You are not in any circle yet. Create one for the person you care for, or join one with the circle code and passcode someone shared with you.
             </p>
           ) : (
-            <ul className="divide-y divide-line rounded-lg border border-line bg-card">
+            <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
               {circles.map((c) => (
                 <li key={c.id}>
                   <Link to={`/c/${c.id}`} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-paper">
                     <span>
-                      <span className="block text-lg font-bold">{c.patientName}</span>
+                      <span className="block font-display text-xl font-bold">{c.patientName}</span>
                       <span className="text-ink-2">You are: {ROLE_LABEL[c.role]} · Circle {c.id}</span>
                     </span>
                     <ChevronRight className="h-5 w-5 text-ink-2" aria-hidden />
@@ -100,9 +100,9 @@ function CreateForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mt-6 rounded-lg border border-line bg-card p-5 sm:p-6" noValidate>
-      <h2 className="text-xl font-bold">New Care Circle</h2>
-      <label className="mt-4 flex items-start gap-3 rounded border border-line bg-paper p-3">
+    <form onSubmit={submit} className="mt-6 rounded-2xl border border-line bg-card p-5 sm:p-7" noValidate>
+      <h2 className="font-display text-2xl font-bold">New Care Circle</h2>
+      <label className="mt-4 flex items-start gap-3 rounded-xl border border-line bg-paper p-4">
         <input type="checkbox" className="mt-1 h-5 w-5 accent-[rgb(var(--brand))]" checked={demo} onChange={(e) => toggleDemo(e.target.checked)} />
         <span>
           <span className="font-bold">Fill with a sample patient and 7 days of sample history</span>
@@ -157,8 +157,8 @@ function JoinForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mt-6 rounded-lg border border-line bg-card p-5 sm:p-6" noValidate>
-      <h2 className="text-xl font-bold">Join a Care Circle</h2>
+    <form onSubmit={submit} className="mt-6 rounded-2xl border border-line bg-card p-5 sm:p-7" noValidate>
+      <h2 className="font-display text-2xl font-bold">Join a Care Circle</h2>
       <p className="mt-1 text-ink-2">Ask a family member in the circle for the circle code and passcode. They are on the circle’s “People & profile” page.</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="Circle code" hint="6 characters, e.g. K7M2QX">{(id, d) => <Input id={id} aria-describedby={d} value={code} onChange={(e) => setCode(e.target.value)} autoCapitalize="characters" autoComplete="off" />}</Field>

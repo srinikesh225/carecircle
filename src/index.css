@@ -1,18 +1,24 @@
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/700.css';
+@import '@fontsource-variable/bricolage-grotesque/index.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --paper: 247 245 240;      /* #F7F5F0 warm paper */
-  --card: 255 255 255;
-  --ink: 29 37 32;           /* #1D2520 */
-  --ink-2: 74 84 78;         /* #4A544E  ~7:1 on paper */
-  --line: 222 218 208;       /* #DEDAD0 */
-  --brand: 36 91 74;         /* #245B4A deep green */
-  --brand-dark: 26 69 56;
-  --brand-soft: 227 238 232;
+  /* Palette after the Medi reference: soft sage canvas, off-white frames, near-black ink,
+     moss green for brand and "taken", chartreuse used only as a decorative accent (never for text). */
+  --paper: 236 239 232;      /* #ECEFE8 sage canvas */
+  --card: 252 252 249;       /* #FCFCF9 off-white frame */
+  --ink: 21 25 21;           /* #151915 */
+  --ink-2: 78 86 79;         /* #4E564F  >= 6.5:1 on canvas and card */
+  --line: 223 227 216;       /* #DFE3D8 */
+  --brand: 62 92 43;         /* #3E5C2B moss, 7:1 on card */
+  --brand-dark: 47 71 32;
+  --brand-soft: 231 238 220;
+  --sage: 214 224 200;       /* #D6E0C8 image-panel green */
+  --accent: 214 205 39;      /* #D6CD27 chartreuse: dots, + markers, chart fill */
+  --accent-soft: 244 241 196;
   --warn: 138 75 8;          /* #8A4B08 */
   --warn-soft: 251 239 217;
   --alert: 161 39 27;        /* #A1271B */
@@ -24,7 +30,8 @@
 
 html { font-size: 17px; -webkit-text-size-adjust: 100%; }
 body { @apply bg-paper text-ink font-sans antialiased; line-height: 1.5; }
-h1, h2, h3 { line-height: 1.2; }
+h1, h2, h3 { line-height: 1.15; }
+.font-display { font-family: 'Bricolage Grotesque Variable', 'Atkinson Hyperlegible', system-ui, sans-serif; letter-spacing: -0.035em; }
 :focus-visible { outline: 3px solid rgb(var(--brand)); outline-offset: 2px; }
 .tabular { font-variant-numeric: tabular-nums; }
 

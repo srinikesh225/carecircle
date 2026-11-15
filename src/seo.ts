@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 export const SITE_URL = 'https://carecircle-pw.vercel.app'
 export const SITE_NAME = 'CareCircle'
 export const REPO_URL = 'https://github.com/srinikesh225/carecircle'
-export const OG_IMAGE = { path: '/og-image.png', width: 1200, height: 630, alt: 'CareCircle: everyone who looks after one person, working from the same page.' }
+export const OG_IMAGE = { path: '/og-image.png', width: 1200, height: 630, alt: 'CareCircle: shared care for the people who raised you. A sample day showing a dose taken, one not confirmed and one still to come.' }
 
 export interface PageMeta {
   path: string
