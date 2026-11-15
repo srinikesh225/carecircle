@@ -1,4 +1,4 @@
-import { circleMembers, handle, HttpError, verifyUser } from './_lib/auth.js'
+import { circleMembers, handle, HttpError, rateLimit, verifyUser } from './_lib/auth.js'
 import { composeBrief, type BriefFacts } from '../src/domain/insights.js'
 
 const SYSTEM = `You write a short daily care update for the family and caregivers of an older adult.
@@ -59,6 +59,7 @@ async function generate(model: string, key: string, facts: BriefFacts, timeoutMs
 
 export default handle(async (req, res) => {
   const { uid, token } = await verifyUser(req)
+  rateLimit(`brief:${uid}`, 20, 60_000)
   const body = (req.body ?? {}) as { circleId?: string; facts?: BriefFacts }
   if (!body.circleId || !body.facts || typeof body.facts.patientName !== 'string')
     throw new HttpError(400, 'Missing records.')

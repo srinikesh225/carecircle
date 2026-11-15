@@ -4,6 +4,8 @@
 
 Live: https://carecircle-pw.vercel.app · Code: https://github.com/srinikesh225/carecircle · Built for the PromptWars × Catalyst challenge _Elderly Care & Medication Management Platform_.
 
+[![CI](https://github.com/srinikesh225/carecircle/actions/workflows/ci.yml/badge.svg)](https://github.com/srinikesh225/carecircle/actions/workflows/ci.yml)
+
 When an older person's care is spread across a spouse, a child in another city and a visiting caregiver, the hard part isn't remembering the tablet. It's knowing whether anyone gave it. CareCircle keeps one shared record per person. A dose recorded on one phone shows up on everyone's screen straight away, along with who recorded it. Doses nobody has recorded are flagged as _not confirmed_, never guessed as "missed". The next caregiver gets a handover built from the records.
 
 ---
@@ -89,9 +91,7 @@ circles/{circleId}                  { patient, createdBy, demo }
 ```bash
 npm install
 npm run dev        # http://localhost:5173, with /api served by the Vite dev server
-npm test           # domain tests
-node scripts/rules-check.mjs <CIRCLE> <PASSCODE> [--record]   # live security-rule checks as real users
-npm run build      # typecheck + production build
+npm run build      # typecheck + production build + prerender
 ```
 
 Optional server-side env vars (in `.env.local` for local dev, Vercel project settings for production). See [`.env.example`](.env.example):
@@ -102,6 +102,22 @@ Optional server-side env vars (in `.env.local` for local dev, Vercel project set
 | `RESEND_API_KEY`, `EMAIL_FROM`   | Emails are composed and logged as "not sent: email not configured" |
 
 Deploy the security rules with `firebase deploy --only firestore:rules`.
+
+## Quality, testing and security
+
+Every push runs [CI](.github/workflows/ci.yml): Prettier, ESLint, TypeScript, tests with coverage, the production build, `npm audit`, and the Firestore rules tests in the emulator.
+
+| Command                                            | What it checks                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run lint`                                     | ESLint with type-aware `typescript-eslint` rules, React hooks, and the `jsx-a11y` accessibility rules                                                                                                                                                                                                          |
+| `npm run format:check`                             | Prettier formatting                                                                                                                                                                                                                                                                                            |
+| `npm run typecheck`                                | TypeScript `strict`                                                                                                                                                                                                                                                                                            |
+| `npm test`                                         | 52 tests: domain logic (dose status, adherence, attention rules, handover, brief), reminder timing and retry rules, both API handlers (model fallback, advice filter, per-member email, escaping, rate limits), SEO tags and JSON-LD, prerendered pages, and axe-core accessibility scans of every public page |
+| `npm run test:coverage`                            | Same, with coverage (API ~95%, domain and reminder logic 80-100%; signed-in screens are verified in the browser rather than unit-tested)                                                                                                                                                                       |
+| `npm run test:rules`                               | 15 tests of [`firestore.rules`](firestore.rules) in the Firestore emulator (needs Java and the Firebase CLI)                                                                                                                                                                                                   |
+| `node scripts/rules-check.mjs <CIRCLE> <PASSCODE>` | The same security checks against the live project, as real users                                                                                                                                                                                                                                               |
+
+Security model and known limitations: [SECURITY.md](SECURITY.md).
 
 ## Try it
 

@@ -10,7 +10,7 @@ export default tseslint.config(
 
   // Application and API code: type-aware rules, React hooks and accessibility.
   {
-    files: ['src/**/*.{ts,tsx}', 'api/**/*.ts', 'vite.config.ts'],
+    files: ['src/**/*.{ts,tsx}', 'api/**/*.ts', 'tests/**/*.ts', 'vite.config.ts', 'vitest.rules.config.ts'],
     extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked, jsxA11y.flatConfigs.recommended],
     languageOptions: {
       ecmaVersion: 2022,

@@ -165,3 +165,16 @@ describe('/api/notify', () => {
     expect(sent.html).not.toContain('<script>')
   })
 })
+
+describe('rate limiting', () => {
+  it('allows up to the limit per window, then answers 429 until the window passes', async () => {
+    const { rateLimit, HttpError } = await import('./_lib/auth')
+    const t = 1_000_000
+    for (let i = 0; i < 3; i++) rateLimit('test:user', 3, 60_000, t + i)
+    expect(() => rateLimit('test:user', 3, 60_000, t + 10)).toThrow(HttpError)
+    expect(() => rateLimit('test:user', 3, 60_000, t + 10)).toThrow(/Too many requests/)
+    // Another user is unaffected; the first user is allowed again after the window.
+    expect(() => rateLimit('test:other', 3, 60_000, t + 10)).not.toThrow()
+    expect(() => rateLimit('test:user', 3, 60_000, t + 60_001)).not.toThrow()
+  })
+})

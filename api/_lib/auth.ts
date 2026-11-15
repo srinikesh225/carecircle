@@ -84,3 +84,20 @@ export function handle(fn: (req: Req, res: Res) => Promise<void>) {
     }
   }
 }
+
+const buckets = new Map<string, number[]>()
+
+/**
+ * Sliding-window limit per caller and endpoint, so one signed-in member cannot hammer the AI or email
+ * provider. State lives in this function instance's memory: on serverless it is a brake per warm
+ * instance, not a global quota. Throws 429 when exceeded.
+ */
+export function rateLimit(key: string, limit: number, windowMs: number, now = Date.now()) {
+  const recent = (buckets.get(key) ?? []).filter((t) => now - t < windowMs)
+  if (recent.length >= limit) {
+    buckets.set(key, recent)
+    throw new HttpError(429, 'Too many requests. Please wait a minute and try again.')
+  }
+  recent.push(now)
+  buckets.set(key, recent)
+}

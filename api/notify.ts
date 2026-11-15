@@ -1,4 +1,4 @@
-import { circleMembers, handle, HttpError, verifyUser } from './_lib/auth.js'
+import { circleMembers, handle, HttpError, rateLimit, verifyUser } from './_lib/auth.js'
 
 /** RFC 2606 / 6761 reserved names: these addresses can never receive mail, so they are skipped. */
 const RESERVED_TLD = /\.(test|example|invalid|localhost)$/i
@@ -12,6 +12,7 @@ const escape = (s: string) =>
  */
 export default handle(async (req, res) => {
   const { uid, token } = await verifyUser(req)
+  rateLimit(`notify:${uid}`, 10, 60_000)
   const body = (req.body ?? {}) as { circleId?: string; subject?: string; text?: string; appUrl?: string }
   const subject = (body.subject ?? '').trim().slice(0, 140)
   const text = (body.text ?? '').trim().slice(0, 4000)

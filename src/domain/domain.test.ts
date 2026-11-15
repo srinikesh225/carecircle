@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { Appointment, CareNote, DoseLog, Medication } from './types'
 import { addDays, doseKey, fmtTime, scheduleFor, statusOf } from './schedule'
-import { adherenceWindow, attentionItems, briefFacts, buildHandover, composeBrief, summarise } from './insights'
+import {
+  adherenceWindow,
+  attentionItems,
+  briefFacts,
+  buildHandover,
+  composeBrief,
+  handoverText,
+  summarise,
+} from './insights'
 
 const NOW = new Date(2026, 10, 15, 14, 30) // 15 Nov 2026, 2:30 PM local
 const TODAY = '2026-11-15'
@@ -199,5 +207,67 @@ describe('daily brief fallback', () => {
     expect(text).toContain('not been confirmed')
     expect(text).not.toMatch(/missed/i)
     expect(text).toContain('Anjali wrote "Ate well".')
+  })
+})
+
+describe('handover text and skipped doses', () => {
+  it('flags a dose recorded as not taken, with who recorded it and why', () => {
+    const skipped = { ...log(bp, TODAY, '08:00', 'skipped'), reason: 'Felt unwell' }
+    const items = attentionItems([bp], [skipped], [], NOW)
+    const item = items.find((i) => i.key === `skipped:${doseKey(TODAY, 'bp', '08:00')}`)
+    expect(item).toMatchObject({ level: 'watch', title: 'Amlodipine (8:00 AM) recorded as not taken' })
+    expect(item?.detail).toBe('Recorded by Anjali: "Felt unwell".')
+  })
+
+  it('renders a plain-text handover that someone can paste into a message', () => {
+    const t = (h: number) => new Date(2026, 10, 15, h).getTime()
+    const appts: Appointment[] = [
+      {
+        id: 'a',
+        title: 'Cardiology review',
+        doctor: 'Dr. Sharma',
+        location: '',
+        date: addDays(TODAY, 1),
+        time: '11:00',
+        notes: '',
+        createdByName: 'x',
+      },
+    ]
+    const notes: CareNote[] = [
+      {
+        id: 'n',
+        kind: 'note',
+        text: 'Ate a full lunch',
+        authorUid: 'a',
+        authorName: 'Anjali',
+        authorRole: 'caregiver',
+        at: t(13),
+      },
+    ]
+    const h = buildHandover({
+      meds: [bp, vitd],
+      logs: [log(bp, TODAY, '08:00', 'taken', t(8))],
+      notes,
+      appointments: appts,
+      now: NOW,
+    })
+    const text = handoverText(h, 'Ramesh Kumar')
+    expect(text).toContain('Handover for Ramesh Kumar')
+    expect(text).toContain('8:00 AM Amlodipine: taken (recorded by Anjali)')
+    expect(text).toContain('1:00 PM Amlodipine: not confirmed')
+    expect(text).toContain('8:00 PM Vitamin D (1 tablet)')
+    expect(text).toContain('Anjali: Ate a full lunch')
+    expect(text).toContain('11:00 AM: Cardiology review with Dr. Sharma')
+  })
+
+  it('says so plainly when there is nothing to hand over', () => {
+    const early = new Date(2026, 10, 15, 6, 0)
+    const text = handoverText(
+      buildHandover({ meds: [], logs: [], notes: [], appointments: [], now: early }),
+      'Ramesh Kumar',
+    )
+    expect(text).toContain('None recorded in this period.')
+    expect(text).toContain('Nothing outstanding.')
+    expect(text).toContain('No more doses scheduled today.')
   })
 })
