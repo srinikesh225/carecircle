@@ -1,6 +1,6 @@
 # LinkedIn post draft
 
-When you paste this into LinkedIn, type "@Makers Need More" and pick the page from the dropdown so it becomes a real tag. Also tag Google for Developers and Hack2skill if the event asks for it. Replace the two links before posting, and attach a screen recording of the demo (scenes 1–3 of demo-script.md, about 40 seconds).
+When you paste this into LinkedIn, type "@Makers Need More" and pick the page from the dropdown so it becomes a real tag. Also tag Google for Developers and Hack2skill if the event asks for it. Attach a screen recording of the demo (scenes 1–3 of demo-script.md, about 40 seconds).
 
 ---
 
@@ -22,7 +22,7 @@ What it does:
 Built with React, TypeScript, Firebase (Auth + Firestore security rules), Gemini, Resend and Vercel.
 
 Try it: https://carecircle-pw.vercel.app
-Code: <GITHUB REPO LINK>
+Code: https://github.com/srinikesh225/carecircle
 
 Thanks to @Makers Need More for the challenge.
 

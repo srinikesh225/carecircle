@@ -2,7 +2,7 @@
 
 **Shared medication, appointment and caregiver-handover records for an older adult, their family and their caregivers.**
 
-Live: https://carecircle-pw.vercel.app · Built for the PromptWars × Catalyst challenge *Elderly Care & Medication Management Platform*.
+Live: https://carecircle-pw.vercel.app · Code: https://github.com/srinikesh225/carecircle · Built for the PromptWars × Catalyst challenge *Elderly Care & Medication Management Platform*.
 
 When an older person's care is spread across a spouse, a child in another city and a visiting caregiver, the hard part isn't remembering the tablet. It's knowing whether anyone gave it. CareCircle keeps one shared record per person. A dose recorded on one phone shows up on everyone's screen straight away, along with who recorded it. Doses nobody has recorded are flagged as *not confirmed*, never guessed as "missed". The next caregiver gets a handover built from the records.
 
