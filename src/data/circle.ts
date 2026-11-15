@@ -136,6 +136,16 @@ export async function joinCircle(
   input: { circleCode: string; passcode: string; myRole: Role; myName: string },
 ): Promise<string> {
   const circleId = normaliseCode(input.circleCode)
+
+  // Already a member (e.g. joining again with the same account): just open the circle. Re-running the join would
+  // try to rewrite the membership, which the rules rightly refuse, and the user would see a false "no access".
+  // Reading your own membership only succeeds if you are a member, so a failed read simply means "not yet".
+  const existing = await getDoc(doc(db, 'circles', circleId, 'members', user.uid)).catch(() => null)
+  if (existing?.exists()) {
+    await setDoc(doc(db, 'users', user.uid), { circleIds: arrayUnion(circleId) }, { merge: true })
+    return circleId
+  }
+
   const batch = writeBatch(db)
   // The code goes into a private join proof that nobody can read; the rules check it against the circle's codes.
   batch.set(doc(db, 'circles', circleId, 'joins', user.uid), { code: normaliseCode(input.passcode), at: Date.now() })
