@@ -10,20 +10,20 @@ A self-contained description of what CareCircle is, how it behaves, and how it i
 
 ## 1. What it is
 
-CareCircle is a shared, live record of medicines, doses, appointments and caregiver shift handovers for one older adult (the **patient**), their **family** and their **caregivers**. Each patient has a **Care Circle**. People join a circle with an account plus that circle's passcode. Anything one member records (a dose, a note, an appointment) appears on every other member's screen in real time, with who recorded it.
+CareCircle is a shared, live record of medicines, doses, appointments and caregiver shift handovers for one older adult (the **patient**), their **family** and their **caregivers**. Each patient has a **Care Circle**. People join a circle with an account plus an invite code: the Family code, or the Caregiver code, which can only join as a caregiver. Anything one member records (a dose, a note, an appointment) appears on every other member's screen in real time, with who recorded it.
 
 ### How it maps to the challenge
 
-| Challenge requirement                                    | Where it is implemented                                                                                                                           |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared ecosystem for elderly person, caretakers, family  | Care Circle with roles Patient / Family / Caregiver (`src/domain/types.ts`, `firestore.rules`)                                                    |
-| Secure, passcode-based access                            | Account sign-in plus per-circle passcode, checked inside Firestore rules (`firestore.rules`, `src/data/circle.ts` `joinCircle`)                   |
-| View / add / edit / manage medication schedules          | Medications page (`src/pages/Medications.tsx`), data layer `saveMedication`, `setMedicationActive`                                                |
-| Track adherence                                          | Dose statuses and 7-day adherence (`src/domain/schedule.ts`, `src/domain/insights.ts`)                                                            |
-| Monitor upcoming appointments                            | Appointments page, attention items, reminders (`src/pages/Appointments.tsx`, `src/domain/insights.ts`, `src/domain/reminders.ts`)                 |
-| Email reminders (missed/unconfirmed doses, appointments) | `src/domain/reminders.ts` decides, `src/reminders.ts` sends through `api/notify.ts` (Resend)                                                      |
-| Go beyond a reminder app                                 | Shift handover, early-attention patterns, AI daily brief, shared activity timeline, patient's wishes banner                                       |
-| Elderly person at the centre                             | Large-type patient view with "I took it" and read-aloud (`src/pages/PatientHome.tsx`); wishes shown to every member (`src/pages/CircleShell.tsx`) |
+| Challenge requirement                                    | Where it is implemented                                                                                                                                 |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared ecosystem for elderly person, caretakers, family  | Care Circle with roles Patient / Family / Caregiver (`src/domain/types.ts`, `firestore.rules`)                                                          |
+| Secure, passcode-based access                            | Account sign-in plus a per-role invite code (Family / Caregiver), checked inside Firestore rules (`firestore.rules`, `src/data/circle.ts` `joinCircle`) |
+| View / add / edit / manage medication schedules          | Medications page (`src/pages/Medications.tsx`), data layer `saveMedication`, `setMedicationActive`                                                      |
+| Track adherence                                          | Dose statuses and 7-day adherence (`src/domain/schedule.ts`, `src/domain/insights.ts`)                                                                  |
+| Monitor upcoming appointments                            | Appointments page, attention items, reminders (`src/pages/Appointments.tsx`, `src/domain/insights.ts`, `src/domain/reminders.ts`)                       |
+| Email reminders (missed/unconfirmed doses, appointments) | `src/domain/reminders.ts` decides, `src/reminders.ts` sends through `api/notify.ts` (Resend)                                                            |
+| Go beyond a reminder app                                 | Shift handover, early-attention patterns, AI daily brief, shared activity timeline, patient's wishes banner                                             |
+| Elderly person at the centre                             | Large-type patient view with "I took it" and read-aloud (`src/pages/PatientHome.tsx`); wishes shown to every member (`src/pages/CircleShell.tsx`)       |
 
 ---
 
@@ -56,11 +56,12 @@ Enforced in `firestore.rules`; the UI mirrors them.
 | Action                                           | Patient | Family | Caregiver | Non-member |
 | ------------------------------------------------ | ------- | ------ | --------- | ---------- |
 | Read the circle and all its records              | ✅      | ✅     | ✅        | ❌         |
-| Read the passcode                                | ✅      | ✅     | ✅        | ❌         |
+| Read the Family code                             | ✅      | ✅     | ❌        | ❌         |
+| Read the Caregiver code                          | ✅      | ✅     | ✅        | ❌         |
 | Record a dose (taken / not taken), undo a record | ✅      | ✅     | ✅        | ❌         |
 | Add / edit / stop / restart medications          | ✅      | ✅     | ❌        | ❌         |
 | Edit the patient profile and wishes              | ✅      | ✅     | ❌        | ❌         |
-| Change (rotate) the passcode                     | ✅      | ✅     | ❌        | ❌         |
+| Change (rotate) the invite codes                 | ✅      | ✅     | ❌        | ❌         |
 | Remove another member                            | ✅      | ✅     | ❌        | ❌         |
 | Add / edit / delete appointments                 | ✅      | ✅     | ✅        | ❌         |
 | Write care notes, sign off a handover            | ✅      | ✅     | ✅        | ❌         |
@@ -68,7 +69,7 @@ Enforced in `firestore.rules`; the UI mirrors them.
 
 Additional rules:
 
-- **Joining:** a user can create only **their own** member document, with role `patient`, `family` or `caregiver`. It must either be the circle's creator (same batch as creating the circle) or carry the correct passcode, compared against `circles/{id}/secret/join`, which non-members cannot read.
+- **Joining:** a user can create only **their own** member document. They must be the circle's creator (same batch as creating it), or present an invite code in a private join proof (`joins/{uid}`, readable by nobody): the **Family code** allows role `patient`, `family` or `caregiver`; the **Caregiver code** allows only `caregiver`. The member document itself may not contain a code, because other members can read it.
 - **No self-promotion:** a member may update their own member document but not change `role`.
 - **Doses in your own name only:** `doseLogs` require `byUid == auth.uid` and `status` in `taken | skipped`.
 - **Append-only timeline:** `notes` and `activity` cannot be updated or deleted. Notes must have `authorUid == auth.uid` and a timestamp within ±5 minutes of server time (no back-dating), except sample history written when a circle is created as a **demo** circle.
@@ -83,8 +84,10 @@ Additional rules:
 ```
 users/{uid}                     { circleIds: string[] }                       private to that user
 circles/{circleId}              { patient, createdBy, createdAt, demo }
-  secret/join                   { passcode }                                  members only
-  members/{uid}                 { uid, name, email, role, joinedAt, passcode }
+  secret/join                   { passcode }   Family code: patient and family only
+  secret/caregiver              { passcode }   Caregiver code: all members
+  joins/{uid}                   { code, at }   private join proof: readable by nobody
+  members/{uid}                 { uid, name, email, role, joinedAt }   (never contains a code)
   medications/{id}              { name, dosage, instructions, times[], active, startDate, endDate, updatedAt, updatedByName }
   doseLogs/{date_medId_HHMM}    { medicationId, medicationName, date, time, status: taken|skipped, reason, byUid, byName, byRole, at }
   appointments/{id}             { title, doctor, location, date, time, notes, createdByName }
@@ -93,7 +96,7 @@ circles/{circleId}              { patient, createdBy, createdAt, demo }
   notifications/{eventId}       { kind, subject, body, recipients, status, detail, at, triggeredByName }
 ```
 
-- **Circle code:** 6 characters. **Passcode:** 8 characters, shown as `XXXX-XXXX`. Both use a 31-symbol alphabet without the easily confused 0/O/1/I/L (`src/data/circle.ts`).
+- **Circle code:** 6 characters. **Invite codes** (Family and Caregiver): 8 characters, shown as `XXXX-XXXX`. Both use a 31-symbol alphabet without the easily confused 0/O/1/I/L (`src/data/circle.ts`).
 - **Dose log IDs** are deterministic (`date_medicationId_HHMM`), so the same dose cannot be recorded twice.
 - **Stopping a medication** sets `endDate` to yesterday and keeps history; restarting sets a new `startDate` (`setMedicationActive`).
 
@@ -169,12 +172,12 @@ On the patient's own screen, "I took it" / "Not taken" buttons appear only once 
 | `/`                   | public                                      | Landing: hero, role hotspots (Patient/Family/Caregiver open a description), example chart labelled "Example data", features, sign-up / sign-in / password reset                                            |
 | `/privacy`, `/terms`  | public                                      | Legal pages with breadcrumbs                                                                                                                                                                               |
 | any unknown URL       | public                                      | Custom 404 page, HTTP status 404, noindex                                                                                                                                                                  |
-| `/circles`            | signed in                                   | List of your circles; create a circle (optionally with a labelled sample patient and 7 days of sample history); join with circle code + passcode                                                           |
+| `/circles`            | signed in                                   | List of your circles; create a circle (optionally with a labelled sample patient and 7 days of sample history); join with circle code + invite code                                                        |
 | `/c/:id`              | member                                      | Family/caregiver: Needs attention, Today's doses, Daily care brief, Last 7 days chart, Next appointment, Circle activity. Patient: large-type "My day" with read-aloud and "Tell my family and caregivers" |
 | `/c/:id/medications`  | member                                      | Current medications (add/edit/stop for patient and family), 7-day dose history, stopped medications                                                                                                        |
 | `/c/:id/appointments` | member                                      | Upcoming and past appointments, add/edit/remove                                                                                                                                                            |
 | `/c/:id/handover`     | member (tab shown to family and caregivers) | Shift handover (sign off, email, copy as text) and care notes                                                                                                                                              |
-| `/c/:id/circle`       | member                                      | People (leave/remove), invite (circle code + passcode, rotate), health profile, email reminders log                                                                                                        |
+| `/c/:id/circle`       | member                                      | People (leave/remove), invite (circle code + Family code + Caregiver code, rotate), health profile, email reminders log                                                                                    |
 
 Signed-out visitors to signed-in routes are redirected to `/`; signed-in visitors to `/` are redirected to `/circles`.
 
@@ -182,7 +185,7 @@ Signed-out visitors to signed-in routes are redirected to `/`; signed-in visitor
 
 ## 7. Automated tests
 
-Run: `npm test` (102 tests, about 6 s), `npm run test:coverage`, `npm run test:rules` (24 tests; needs Java and the Firebase CLI). CI (`.github/workflows/ci.yml`) runs all of them plus format, lint, typecheck, build and `npm audit` on every push.
+Run: `npm test` (102 tests, about 6 s), `npm run test:coverage`, `npm run test:rules` (30 tests; needs Java and the Firebase CLI). CI (`.github/workflows/ci.yml`) runs all of them plus format, lint, typecheck, build and `npm audit` on every push.
 
 ### 7.1 Domain logic: `src/domain/domain.test.ts` (13)
 
@@ -250,31 +253,39 @@ Real handlers; only identity (token + membership lookup) and the network are stu
 6. the example chart is labelled as example data, not a real statistic
 7. the account form switches between sign-up, sign-in and reset with labelled fields
 
-### 7.7 Firestore security rules: `tests/firestore-rules.emulator.ts` (15, Firestore emulator)
+### 7.7 Firestore security rules: `tests/firestore-rules.emulator.ts` (30, Firestore emulator)
+
+The 15 original tests and the 6 per-role invite-code tests are listed below. The 9 tests added by the QA audit (record forging, back-dating, member uid/email, demo flag, email-record transitions, activity append-only, caregiver profile/removal limits, access after leaving) are listed in `CARECIRCLE_QA_AUDIT_REPORT.md`.
 
 Project `demo-carecircle` (emulator only; never touches live data).
 
-| Group            | Test                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------- |
-| reading a circle | signed-out visitors and non-members cannot read anything                              |
-|                  | non-members can never read the passcode                                               |
-|                  | members can read the circle and its records                                           |
-|                  | a user's circle list is private to them                                               |
-| joining          | a wrong passcode is refused                                                           |
-|                  | the right passcode lets a user add themself                                           |
-|                  | nobody can add someone else, or use an invented role                                  |
-|                  | a member cannot promote themself                                                      |
-| creating         | the creator can write the circle, passcode, membership and first records in one batch |
-|                  | nobody can take over an existing circle by claiming to be its creator                 |
-| roles            | caregivers record doses but cannot change the medication plan; family can             |
-|                  | a dose can only be recorded in your own name                                          |
-|                  | only patient or family can change the passcode                                        |
-| timeline         | notes are append-only and cannot be back-dated or forged                              |
-|                  | email records start as pending and cannot change kind                                 |
+| Group            | Test                                                                                          |
+| ---------------- | --------------------------------------------------------------------------------------------- |
+| reading a circle | signed-out visitors and non-members cannot read anything                                      |
+|                  | non-members can never read the passcode                                                       |
+|                  | members can read the circle and its records                                                   |
+|                  | a user's circle list is private to them                                                       |
+| joining          | a wrong passcode is refused                                                                   |
+|                  | the right passcode lets a user add themself                                                   |
+|                  | nobody can add someone else, or use an invented role                                          |
+|                  | a member cannot promote themself                                                              |
+| creating         | the creator can write the circle, passcode, membership and first records in one batch         |
+|                  | nobody can take over an existing circle by claiming to be its creator                         |
+| roles            | caregivers record doses but cannot change the medication plan; family can                     |
+|                  | a dose can only be recorded in your own name                                                  |
+|                  | only patient or family can change the passcode                                                |
+| timeline         | notes are append-only and cannot be back-dated or forged                                      |
+|                  | email records start as pending and cannot change kind                                         |
+| per-role codes   | the Caregiver code joins only as caregiver, never as family or patient                        |
+|                  | the Family code can join as family, patient or caregiver                                      |
+|                  | caregivers can read the Caregiver code but never the Family code; non-members neither         |
+|                  | a caregiver who leaves cannot rejoin as family with the Caregiver code                        |
+|                  | join proofs are private, and no code may be stored in a member record                         |
+|                  | family can create a Caregiver code for a circle that predates it; caregivers cannot change it |
 
 ### 7.8 Live checks against production (`scripts/rules-check.mjs`)
 
-`node scripts/rules-check.mjs <CIRCLE_CODE> <PASSCODE> [--record]` signs in the demo caregiver and patient, proves a non-member and a wrong passcode are refused, joins them with the right passcode, checks that a caregiver cannot change medications, promote themself, or write a note as someone else, and optionally records one dose. It prints PASS/FAIL per check.
+`node scripts/rules-check.mjs <CIRCLE_CODE> <FAMILY_CODE> [--record]` signs in the demo caregiver and patient, proves a non-member and a wrong passcode are refused, joins them with the right passcode, checks that a caregiver cannot change medications, promote themself, or write a note as someone else, and optionally records one dose. It prints PASS/FAIL per check.
 
 ---
 

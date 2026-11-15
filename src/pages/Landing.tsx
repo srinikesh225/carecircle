@@ -203,7 +203,7 @@ export default function Landing() {
                 {[
                   ['Create your account', 'Your name is shown next to everything you record.'],
                   ['Add their medicines', 'Or start from a clearly labelled sample patient to try it out.'],
-                  ['Invite the circle', 'Share the circle code and passcode with family and caregivers.'],
+                  ['Invite the circle', 'Share the circle code with a Family code or a Caregiver code.'],
                 ].map(([t, d], i) => (
                   <li key={t} className="flex gap-4">
                     <span
@@ -221,8 +221,8 @@ export default function Landing() {
               </ol>
               <p className="mt-10 flex max-w-lg gap-3 text-[15px] text-white/75">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
-                Only signed-in members who know the circle’s passcode can see a record. CareCircle records what the
-                circle enters; it does not give medical advice, diagnose or change prescriptions.
+                Only signed-in members who joined with the circle’s invite code can see a record. CareCircle records
+                what the circle enters; it does not give medical advice, diagnose or change prescriptions.
               </p>
             </div>
             <AuthCard mode={mode} setMode={setMode} />
@@ -483,7 +483,7 @@ function AuthCard({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void })
       </h3>
       <p className="mt-1 text-ink-2">
         {mode === 'signup'
-          ? 'Then create a circle, or join one with a passcode.'
+          ? 'Then create a circle, or join one with an invite code.'
           : mode === 'reset'
             ? 'We will email you a reset link.'
             : 'Open the circles you belong to.'}

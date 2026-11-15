@@ -4,7 +4,7 @@
 
 Key facts:
 
-- Each patient has a "Care Circle". People join with an account plus that circle's passcode, as Patient, Family or Caregiver. Firestore security rules enforce membership and roles on the server.
+- Each patient has a "Care Circle". People join with an account plus an invite code: the Family code (Patient, Family or Caregiver) or the Caregiver code (Caregiver only). Firestore security rules enforce membership and roles on the server.
 - A dose can be recorded as taken or not taken (with a reason). A dose nobody records within 60 minutes of its time is shown as "not confirmed", never assumed missed, and circle members are emailed.
 - The shift handover lists everything recorded since the last sign-off: doses and who gave them, what is outstanding, notes, and upcoming appointments.
 - The daily care brief is written by Google Gemini from that day's records only, with server-side guards against medical advice. Without an AI key it is composed directly from the records and labelled as such.

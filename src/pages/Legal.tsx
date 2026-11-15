@@ -39,8 +39,9 @@ export function Privacy() {
       </p>
       <h2>Who can see it</h2>
       <p>
-        Only signed-in members of that circle. Joining requires the circle code and its passcode. Access is enforced by
-        database security rules, not just by the app. Members can be removed and the passcode changed at any time.
+        Only signed-in members of that circle. Joining requires the circle code and an invite code: a Family code, or a
+        Caregiver code that only allows joining as a caregiver. Access is enforced by database security rules, not just
+        by the app. Members can be removed and the invite codes changed at any time.
       </p>
       <h2>Services we use</h2>
       <p>
@@ -92,8 +93,8 @@ export function Terms() {
         for what is stored and who can see it.
       </p>
       <p>
-        Only add a person’s information with their consent. Share a circle’s passcode only with people the patient wants
-        involved. Keep your password private.
+        Only add a person’s information with their consent. Share a circle’s invite codes only with people the patient
+        wants involved. Keep your password private.
       </p>
       <h2>Prototype</h2>
       <p>The service is provided as-is for demonstration, without warranty, and may change or be taken offline.</p>

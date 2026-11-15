@@ -46,7 +46,7 @@ export default function Circles() {
           ) : circles.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-line px-5 py-6 text-ink-2">
               You are not in any circle yet. Create one for the person you care for, or join one with the circle code
-              and passcode someone shared with you.
+              and invite code someone shared with you.
             </p>
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
@@ -80,7 +80,7 @@ export default function Circles() {
             onClick={() => setPanel(panel === 'join' ? null : 'join')}
             aria-expanded={panel === 'join'}
           >
-            Join with a passcode
+            Join with a code
           </Button>
         </div>
         {panel === 'create' && <CreateForm />}
@@ -245,7 +245,7 @@ function JoinForm() {
     e.preventDefault()
     const id = await run(async () => {
       if (!code.trim() || !pass.trim() || !myName.trim())
-        throw new Error('Fill in the circle code, passcode and your name.')
+        throw new Error('Fill in the circle code, invite code and your name.')
       return joinCircle(user!, { circleCode: code, passcode: pass, myRole, myName: myName.trim() })
     })
     if (id) void nav(`/c/${id}`)
@@ -255,8 +255,8 @@ function JoinForm() {
     <form onSubmit={submit} className="mt-6 rounded-2xl border border-line bg-card p-5 sm:p-7" noValidate>
       <h2 className="font-display text-2xl font-bold">Join a Care Circle</h2>
       <p className="mt-1 text-ink-2">
-        Ask a family member in the circle for the circle code and passcode. They are on the circle’s “People & profile”
-        page.
+        Ask a family member for the circle code and an invite code (on the circle’s “People & profile” page). Use the
+        Family code to join as family or as the patient; caregivers use the Caregiver code.
       </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="Circle code" hint="6 characters, e.g. K7M2QX">
@@ -271,7 +271,7 @@ function JoinForm() {
             />
           )}
         </Field>
-        <Field label="Passcode" hint="8 characters, e.g. ABCD-EF23">
+        <Field label="Invite code" hint="8 characters, e.g. ABCD-EF23">
           {(id, d) => (
             <Input
               id={id}

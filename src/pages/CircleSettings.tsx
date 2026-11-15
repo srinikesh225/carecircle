@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { formatPasscode, removeMember, rotatePasscode, updatePatient } from '../data/circle'
+import { changeInviteCodes, formatPasscode, removeMember, updatePatient } from '../data/circle'
 import { ROLE_LABEL, type Patient } from '../domain/types'
 import { Button, ErrorText, Field, Input, Section, Textarea, useAction } from '../ui'
 import { useCircleCtx } from './CircleShell'
@@ -44,7 +44,7 @@ function Members() {
                 variant="danger"
                 busy={busy}
                 onClick={async () => {
-                  if (!confirm('Leave this circle? You will need the passcode to rejoin.')) return
+                  if (!confirm('Leave this circle? You will need an invite code to rejoin.')) return
                   const ok = await run(async () => {
                     await removeMember(circleId, actor, m)
                     return true
@@ -61,7 +61,7 @@ function Members() {
                 busy={busy}
                 onClick={() =>
                   confirm(
-                    `Remove ${m.name} from the circle? The passcode will also change, so they cannot rejoin with it.`,
+                    `Remove ${m.name} from the circle? The invite codes will also change, so they cannot rejoin with the old ones.`,
                   ) && run(() => removeMember(circleId, actor, m))
                 }
               >
@@ -79,23 +79,33 @@ function Members() {
 function Access() {
   const { circleId, data, actor, canEditPlan } = useCircleCtx()
   const { busy, error, run } = useAction()
+  // Invite codes are shown as XXXX-XXXX; the 6-character circle code is shown as is.
+  const code = (label: string, hint: string, value: string | null, invite = true) => (
+    <div className="rounded-lg border border-line bg-paper p-3">
+      <dt className="text-sm font-bold">{label}</dt>
+      <dd className="tabular text-2xl font-bold tracking-wider">
+        {value ? (invite ? formatPasscode(value) : value) : '…'}
+      </dd>
+      <dd className="mt-1 text-sm text-ink-2">{hint}</dd>
+    </div>
+  )
   return (
     <Section title="Invite someone" id="access">
       <p className="text-ink-2">
-        Share both codes with a family member or caregiver. They create an account, choose “Join with a passcode”, and
-        pick their role.
+        They create an account, choose “Join with a code”, and enter the circle code plus the right invite code. Each
+        code only allows the roles shown, so a caregiver can never join as family.
       </p>
-      <dl className="mt-4 grid grid-cols-2 gap-4">
-        <div className="rounded border border-line bg-paper p-3">
-          <dt className="text-sm text-ink-2">Circle code</dt>
-          <dd className="tabular text-2xl font-bold tracking-wider">{circleId}</dd>
-        </div>
-        <div className="rounded border border-line bg-paper p-3">
-          <dt className="text-sm text-ink-2">Passcode</dt>
-          <dd className="tabular text-2xl font-bold tracking-wider">
-            {data.passcode ? formatPasscode(data.passcode) : '…'}
-          </dd>
-        </div>
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+        {code('Circle code', 'Needed by everyone who joins.', circleId, false)}
+        {canEditPlan &&
+          code('Family code', 'For family members and the patient. Keep it within the family.', data.familyCode)}
+        {data.caregiverCode
+          ? code('Caregiver code', 'For caregivers only: it cannot be used to join as family.', data.caregiverCode)
+          : canEditPlan && (
+              <div className="rounded-lg border border-dashed border-line p-3 text-sm text-ink-2">
+                This circle was created before caregiver codes existed. Change the codes below to create one.
+              </div>
+            )}
       </dl>
       {canEditPlan && (
         <div className="mt-4">
@@ -104,14 +114,14 @@ function Access() {
             variant="secondary"
             busy={busy}
             onClick={() =>
-              confirm('Change the passcode? The old one stops working for new joiners. Existing members stay.') &&
-              run(() => rotatePasscode(circleId, actor))
+              confirm('Change both invite codes? The old ones stop working for new joiners. Existing members stay.') &&
+              run(() => changeInviteCodes(circleId, actor))
             }
           >
-            Change passcode
+            Change invite codes
           </Button>
           <p className="mt-2 text-sm text-ink-2">
-            Change it if it was shared with the wrong person. Remove that person above too.
+            Change them if a code was shared with the wrong person. Remove that person above too.
           </p>
         </div>
       )}

@@ -1,5 +1,5 @@
 // End-to-end check of the security model against the LIVE Firestore rules, as real users.
-// Usage: node scripts/rules-check.mjs <CIRCLE_CODE> <PASSCODE>
+// Usage: node scripts/rules-check.mjs <CIRCLE_CODE> <FAMILY_CODE>
 // Creates (or signs in) the caregiver and patient demo accounts from docs/demo-accounts.md,
 // proves a wrong passcode and an outsider are refused, joins them to the circle with the right
 // passcode, checks role limits, and records one dose as the caregiver.
@@ -50,13 +50,14 @@ async function account(email, name) {
 }
 function join(user, name, role, code) {
   const b = writeBatch(db)
+  // Same as the app: the typed code goes into a private join proof, never into the member record.
+  b.set(doc(db, 'circles', circleId, 'joins', user.uid), { code, at: Date.now() })
   b.set(doc(db, 'circles', circleId, 'members', user.uid), {
     uid: user.uid,
     name,
     email: user.email,
     role,
     joinedAt: Date.now(),
-    passcode: code,
   })
   b.set(doc(db, 'users', user.uid), { circleIds: arrayUnion(circleId) }, { merge: true })
   b.set(doc(collection(db, 'circles', circleId, 'activity')), {

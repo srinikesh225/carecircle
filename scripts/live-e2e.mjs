@@ -53,7 +53,8 @@ const pt = await session('patient', 'ramesh.patient@carecircle.test')
 
 // 1. Family creates a disposable, non-demo circle with one medication.
 const C = code().slice(0, 6)
-const PASS = code()
+const PASS = code() // Family code
+const CPASS = code() // Caregiver code
 const medId = 'auditmed'
 {
   const b = writeBatch(fam.db)
@@ -72,13 +73,13 @@ const medId = 'auditmed'
     demo: false,
   })
   b.set(doc(fam.db, 'circles', C, 'secret', 'join'), { passcode: PASS })
+  b.set(doc(fam.db, 'circles', C, 'secret', 'caregiver'), { passcode: CPASS })
   b.set(doc(fam.db, 'circles', C, 'members', fam.user.uid), {
     uid: fam.user.uid,
     name: 'Priya',
     email: fam.user.email,
     role: 'family',
     joinedAt: Date.now(),
-    passcode: PASS,
   })
   b.set(doc(fam.db, 'users', fam.user.uid), { circleIds: arrayUnion(C) }, { merge: true })
   b.set(doc(fam.db, 'circles', C, 'medications', medId), {
@@ -106,13 +107,13 @@ const medId = 'auditmed'
 // 2. Joining: wrong passcode refused; caregiver and patient join with the right one.
 const join = (s, name, role, passcode) => {
   const b = writeBatch(s.db)
+  b.set(doc(s.db, 'circles', C, 'joins', s.user.uid), { code: passcode, at: Date.now() })
   b.set(doc(s.db, 'circles', C, 'members', s.user.uid), {
     uid: s.user.uid,
     name,
     email: s.user.email,
     role,
     joinedAt: Date.now(),
-    passcode,
   })
   b.set(doc(s.db, 'users', s.user.uid), { circleIds: arrayUnion(C) }, { merge: true })
   b.set(doc(collection(s.db, 'circles', C, 'activity')), {
@@ -125,9 +126,12 @@ const join = (s, name, role, passcode) => {
 }
 check(await denied(join(cg, 'Anjali', 'caregiver', 'WRONG123')), 'wrong passcode refused')
 check(await denied(getDoc(doc(cg.db, 'circles', C, 'secret', 'join'))), 'non-member cannot read the passcode')
-await join(cg, 'Anjali', 'caregiver', PASS)
+check(await denied(join(cg, 'Anjali', 'family', CPASS)), 'Caregiver code cannot be used to join as family')
+await join(cg, 'Anjali', 'caregiver', CPASS)
 await join(pt, 'Ramesh', 'patient', PASS)
-check(true, 'caregiver and patient joined with the correct passcode')
+check(true, 'caregiver joined with the Caregiver code, patient with the Family code')
+check(await denied(getDoc(doc(cg.db, 'circles', C, 'secret', 'join'))), 'caregiver cannot read the Family code')
+check((await getDoc(doc(cg.db, 'circles', C, 'secret', 'caregiver'))).exists(), 'caregiver can read the Caregiver code')
 check(await denied(join(cg, 'Anjali', 'family', PASS)), 'caregiver cannot re-register as family while a member')
 
 // 3. Real-time sync: family and patient listen while the caregiver records a dose.
@@ -251,7 +255,8 @@ check(
 // 7. Removal: family removes the caregiver and rotates the passcode atomically; caregiver loses access.
 const rb = writeBatch(fam.db)
 rb.delete(doc(fam.db, 'circles', C, 'members', cg.user.uid))
-rb.update(doc(fam.db, 'circles', C, 'secret', 'join'), { passcode: code() })
+rb.set(doc(fam.db, 'circles', C, 'secret', 'join'), { passcode: code() })
+rb.set(doc(fam.db, 'circles', C, 'secret', 'caregiver'), { passcode: code() })
 rb.set(doc(collection(fam.db, 'circles', C, 'activity')), {
   text: 'removed Anjali and changed the passcode',
   byName: 'Priya',
@@ -260,7 +265,10 @@ rb.set(doc(collection(fam.db, 'circles', C, 'activity')), {
 })
 await rb.commit()
 check(await denied(getDoc(doc(cg.db, 'circles', C))), 'removed caregiver loses access immediately')
-check(await denied(join(cg, 'Anjali', 'family', PASS)), 'removed caregiver cannot rejoin with the old passcode')
+check(
+  await denied(join(cg, 'Anjali', 'caregiver', CPASS)),
+  'removed caregiver cannot rejoin with the old Caregiver code',
+)
 
 for (const s of [fam, cg, pt]) {
   await terminate(s.db)

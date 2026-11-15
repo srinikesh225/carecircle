@@ -13,7 +13,8 @@ import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/
 
 let env: RulesTestEnvironment
 const C = 'CIRC01'
-const PASS = 'ABCD2345'
+const PASS = 'ABCD2345' // Family code
+const CPASS = 'CARE6789' // Caregiver code
 const patient = {
   name: 'Test Patient',
   age: 80,
@@ -46,8 +47,9 @@ beforeEach(async () => {
     const db = ctx.firestore()
     await setDoc(doc(db, 'circles', C), { patient, createdBy: 'owner', createdAt: 1, demo: false })
     await setDoc(doc(db, 'circles', C, 'secret', 'join'), { passcode: PASS })
-    await setDoc(doc(db, 'circles', C, 'members', 'owner'), member('owner', 'family', { passcode: PASS }))
-    await setDoc(doc(db, 'circles', C, 'members', 'cg'), member('cg', 'caregiver', { passcode: PASS }))
+    await setDoc(doc(db, 'circles', C, 'secret', 'caregiver'), { passcode: CPASS })
+    await setDoc(doc(db, 'circles', C, 'members', 'owner'), member('owner', 'family'))
+    await setDoc(doc(db, 'circles', C, 'members', 'cg'), member('cg', 'caregiver'))
     await setDoc(doc(db, 'circles', C, 'medications', 'm1'), { name: 'Med', times: ['08:00'] })
     await setDoc(doc(db, 'circles', C, 'notes', 'n1'), { kind: 'note', text: 'hi', authorUid: 'cg', at: 1 })
   })
@@ -59,6 +61,15 @@ const as = (uid: string | null) =>
     ? env.authenticatedContext(uid, { email: `${uid}@example.org` }).firestore()
     : env.unauthenticatedContext().firestore()
 const now = () => Date.now()
+
+/** Join the way the app does: a private join proof with the typed code, plus the member record, in one batch. */
+function join(uid: string, role: string, code: string, opts: { as?: string; extra?: object } = {}) {
+  const db = as(opts.as ?? uid)
+  const b = writeBatch(db)
+  b.set(doc(db, 'circles', C, 'joins', opts.as ?? uid), { code, at: now() })
+  b.set(doc(db, 'circles', C, 'members', uid), member(uid, role, opts.extra))
+  return b.commit()
+}
 
 describe('reading a circle', () => {
   it('signed-out visitors and non-members cannot read anything', async () => {
@@ -85,24 +96,16 @@ describe('reading a circle', () => {
 
 describe('joining with a passcode', () => {
   it('a wrong passcode is refused', async () => {
-    await assertFails(
-      setDoc(doc(as('new'), 'circles', C, 'members', 'new'), member('new', 'family', { passcode: 'WRONG123' })),
-    )
+    await assertFails(join('new', 'family', 'WRONG123'))
   })
 
   it('the right passcode lets a user add themself', async () => {
-    await assertSucceeds(
-      setDoc(doc(as('new'), 'circles', C, 'members', 'new'), member('new', 'caregiver', { passcode: PASS })),
-    )
+    await assertSucceeds(join('new', 'caregiver', PASS))
   })
 
   it('nobody can add someone else, or use an invented role', async () => {
-    await assertFails(
-      setDoc(doc(as('new'), 'circles', C, 'members', 'victim'), member('victim', 'family', { passcode: PASS })),
-    )
-    await assertFails(
-      setDoc(doc(as('new'), 'circles', C, 'members', 'new'), member('new', 'admin', { passcode: PASS })),
-    )
+    await assertFails(join('victim', 'family', PASS, { as: 'new' }))
+    await assertFails(join('new', 'admin', PASS))
   })
 
   it('a member cannot promote themself', async () => {
@@ -117,7 +120,8 @@ describe('creating a circle', () => {
     const b = writeBatch(db)
     b.set(doc(db, 'circles', 'NEW001'), { patient, createdBy: 'alice', createdAt: 1, demo: false })
     b.set(doc(db, 'circles', 'NEW001', 'secret', 'join'), { passcode: 'ZZZZ9999' })
-    b.set(doc(db, 'circles', 'NEW001', 'members', 'alice'), member('alice', 'family', { passcode: 'ZZZZ9999' }))
+    b.set(doc(db, 'circles', 'NEW001', 'secret', 'caregiver'), { passcode: 'YYYY8888' })
+    b.set(doc(db, 'circles', 'NEW001', 'members', 'alice'), member('alice', 'family'))
     b.set(doc(db, 'circles', 'NEW001', 'medications', 'x'), { name: 'Med', times: ['09:00'] })
     b.set(doc(db, 'circles', 'NEW001', 'activity', 'a'), {
       text: 'created',
@@ -256,9 +260,7 @@ describe('audit: gaps beyond the original suite', () => {
   })
 
   it('a member joins with their own sign-in email, not someone else’s', async () => {
-    await assertFails(
-      setDoc(memberRef('new', 'new'), member('new', 'caregiver', { passcode: PASS, email: 'victim@example.org' })),
-    )
+    await assertFails(join('new', 'caregiver', PASS, { extra: { email: 'victim@example.org' } }))
   })
 
   it('the demo flag cannot be switched on for a real circle', async () => {
@@ -282,5 +284,48 @@ describe('audit: gaps beyond the original suite', () => {
     await assertSucceeds(updateDoc(ref, { status: 'pending', at: now() })) // retry claim
     await assertSucceeds(updateDoc(ref, { status: 'sent', detail: 'Sent to 1 of 1 member.' })) // settle
     await assertFails(updateDoc(ref, { status: 'failed' })) // sent is final
+  })
+})
+
+describe('per-role invite codes', () => {
+  it('the Caregiver code joins only as caregiver, never as family or patient', async () => {
+    await assertFails(join('c1', 'family', CPASS))
+    await assertFails(join('c2', 'patient', CPASS))
+    await assertSucceeds(join('c3', 'caregiver', CPASS))
+  })
+
+  it('the Family code can join as family, patient or caregiver', async () => {
+    await assertSucceeds(join('f1', 'family', PASS))
+    await assertSucceeds(join('f2', 'patient', PASS))
+    await assertSucceeds(join('f3', 'caregiver', PASS))
+  })
+
+  it('caregivers can read the Caregiver code but never the Family code; non-members neither', async () => {
+    await assertFails(getDoc(doc(as('cg'), 'circles', C, 'secret', 'join')))
+    await assertSucceeds(getDoc(doc(as('cg'), 'circles', C, 'secret', 'caregiver')))
+    await assertSucceeds(getDoc(doc(as('owner'), 'circles', C, 'secret', 'join')))
+    await assertFails(getDoc(doc(as('stranger'), 'circles', C, 'secret', 'caregiver')))
+  })
+
+  it('a caregiver who leaves cannot rejoin as family with the Caregiver code', async () => {
+    await assertSucceeds(deleteDoc(doc(as('cg'), 'circles', C, 'members', 'cg')))
+    await assertFails(join('cg', 'family', CPASS))
+    await assertSucceeds(join('cg', 'caregiver', CPASS))
+  })
+
+  it('join proofs are private, and no code may be stored in a member record', async () => {
+    await assertSucceeds(join('p1', 'caregiver', CPASS))
+    await assertFails(getDoc(doc(as('p1'), 'circles', C, 'joins', 'p1')))
+    await assertFails(getDoc(doc(as('owner'), 'circles', C, 'joins', 'p1')))
+    await assertFails(join('p2', 'caregiver', CPASS, { extra: { passcode: CPASS } }))
+  })
+
+  it('family can create a Caregiver code for a circle that predates it; caregivers cannot change it', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await deleteDoc(doc(ctx.firestore(), 'circles', C, 'secret', 'caregiver'))
+    })
+    await assertFails(setDoc(doc(as('cg'), 'circles', C, 'secret', 'caregiver'), { passcode: 'CGNEW123' }))
+    await assertSucceeds(setDoc(doc(as('owner'), 'circles', C, 'secret', 'caregiver'), { passcode: 'CGNEW123' }))
+    await assertSucceeds(join('late', 'caregiver', 'CGNEW123'))
   })
 })

@@ -42,7 +42,8 @@ function renderAt(now: Date, logs: DoseLog[] = []) {
     demo: false,
     members: [],
     me: { uid: 'p', name: 'Ramesh', email: '', role: 'patient', joinedAt: 0 },
-    passcode: null,
+    familyCode: null,
+    caregiverCode: null,
     medications: [
       med('am', 'Amlodipine', ['08:30']),
       med('mf', 'Metformin', ['20:00']),

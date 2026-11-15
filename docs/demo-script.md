@@ -3,8 +3,8 @@
 **Fresh data on demo day (2 minutes):** the sample history is dated relative to the day the circle is created, so make a new one that morning:
 
 1. Sign in as Priya, choose **Create a circle**, tick **Fill with a sample patient**, then create it.
-2. On **People & profile**, note the circle code and passcode.
-3. Run `node scripts/rules-check.mjs <CODE> <PASSCODE>`. This joins Anjali (caregiver) and Ramesh (patient) through the real passcode check and prints the security checks, which are worth showing too.
+2. On **People & profile**, note the circle code and the **Family code**.
+3. Run `node scripts/rules-check.mjs <CIRCLE_CODE> <FAMILY_CODE>`. This joins Anjali (caregiver) and Ramesh (patient) through the real passcode check and prints the security checks, which are worth showing too.
 
 **Setup before judging:** open three browser windows side by side, each signed in as one demo account from `demo-accounts.md` (Family, Caregiver, Patient), all on the same sample circle. Use a private window for each so the sessions don't collide.
 
@@ -39,7 +39,7 @@
 
 ## Scene 5: security (20 s)
 
-- People & profile: circle code and passcode. "Joining needs both, and the check runs in the Firestore security rules, not in the browser. Caregivers can record doses but can't change prescriptions."
+- People & profile: circle code, Family code and Caregiver code. "Each code only allows certain roles: the Caregiver code can never join as family. The check runs in the Firestore security rules, not in the browser. Caregivers can record doses but can't change prescriptions."
 
 ## Close (15 s)
 

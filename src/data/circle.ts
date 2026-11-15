@@ -42,7 +42,10 @@ function randomCode(len: number): string {
   return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('')
 }
 
-/** 8-character passcode shown as XXXX-XXXX. ~40 bits; joining also requires the circle code. */
+/**
+ * 8-character invite code shown as XXXX-XXXX (~40 bits; joining also needs the circle code). Each circle has two:
+ * the Family code (join as patient, family or caregiver) and the Caregiver code (join as caregiver only).
+ */
 export const newPasscode = () => randomCode(8)
 export const formatPasscode = (p: string) => `${p.slice(0, 4)}-${p.slice(4)}`
 export const normaliseCode = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -104,7 +107,6 @@ export async function createCircle(
   input: { patient: Patient; myRole: Role; myName: string; demo: boolean },
 ): Promise<string> {
   const circleId = randomCode(6)
-  const passcode = newPasscode()
   const actor: Actor = { uid: user.uid, name: input.myName, role: input.myRole }
   const batch = writeBatch(db)
   batch.set(doc(db, 'circles', circleId), {
@@ -113,14 +115,14 @@ export async function createCircle(
     createdAt: Date.now(),
     demo: input.demo,
   })
-  batch.set(doc(db, 'circles', circleId, 'secret', 'join'), { passcode })
+  batch.set(doc(db, 'circles', circleId, 'secret', 'join'), { passcode: newPasscode() })
+  batch.set(doc(db, 'circles', circleId, 'secret', 'caregiver'), { passcode: newPasscode() })
   batch.set(doc(db, 'circles', circleId, 'members', user.uid), {
     uid: user.uid,
     name: input.myName,
     email: user.email ?? '',
     role: input.myRole,
     joinedAt: Date.now(),
-    passcode,
   })
   batch.set(doc(db, 'users', user.uid), { circleIds: arrayUnion(circleId) }, { merge: true })
   logActivity(batch, circleId, actor, `created the Care Circle for ${input.patient.name}`)
@@ -134,15 +136,15 @@ export async function joinCircle(
   input: { circleCode: string; passcode: string; myRole: Role; myName: string },
 ): Promise<string> {
   const circleId = normaliseCode(input.circleCode)
-  const passcode = normaliseCode(input.passcode)
   const batch = writeBatch(db)
+  // The code goes into a private join proof that nobody can read; the rules check it against the circle's codes.
+  batch.set(doc(db, 'circles', circleId, 'joins', user.uid), { code: normaliseCode(input.passcode), at: Date.now() })
   batch.set(doc(db, 'circles', circleId, 'members', user.uid), {
     uid: user.uid,
     name: input.myName,
     email: user.email ?? '',
     role: input.myRole,
     joinedAt: Date.now(),
-    passcode,
   })
   batch.set(doc(db, 'users', user.uid), { circleIds: arrayUnion(circleId) }, { merge: true })
   logActivity(
@@ -154,8 +156,13 @@ export async function joinCircle(
   try {
     await batch.commit()
   } catch {
-    // Rules deny both "no such circle" and "wrong passcode" identically, so we cannot (and should not) say which.
-    throw new Error('That circle code and passcode do not match. Check both with the person who shared them.')
+    // Rules deny "no such circle", "wrong code" and "code not valid for this role" identically, so we cannot
+    // (and should not) say which.
+    throw new Error(
+      input.myRole === 'caregiver'
+        ? 'That circle code and invite code do not match. Check both with the person who shared them.'
+        : 'That circle code and invite code do not match. Joining as family or as the patient needs the Family code; a Caregiver code only works for caregivers.',
+    )
   }
   return circleId
 }
@@ -168,7 +175,10 @@ export interface CircleData {
   demo: boolean
   members: Member[]
   me: Member | null
-  passcode: string | null
+  /** Family code: visible to patient and family only. */
+  familyCode: string | null
+  /** Caregiver code: visible to every member. Null for older circles until family creates one. */
+  caregiverCode: string | null
   medications: Medication[]
   appointments: Appointment[]
   logs: DoseLog[]
@@ -207,7 +217,12 @@ export function useCircle(circleId: string, uid: string) {
       ),
       onSnapshot(
         doc(db, 'circles', circleId, 'secret', 'join'),
-        (s) => set({ passcode: (s.data()?.passcode as string) ?? null }),
+        (s) => set({ familyCode: (s.data()?.passcode as string) ?? null }),
+        () => {},
+      ),
+      onSnapshot(
+        doc(db, 'circles', circleId, 'secret', 'caregiver'),
+        (s) => set({ caregiverCode: (s.data()?.passcode as string) ?? null }),
         () => {},
       ),
       onSnapshot(
@@ -273,7 +288,8 @@ export function useCircle(circleId: string, uid: string) {
         demo: state.demo ?? false,
         members: state.members!,
         me: state.me ?? null,
-        passcode: state.passcode ?? null,
+        familyCode: state.familyCode ?? null,
+        caregiverCode: state.caregiverCode ?? null,
         medications: state.medications!,
         appointments: state.appointments!,
         logs: state.logs!,
@@ -412,10 +428,16 @@ export async function updatePatient(circleId: string, actor: Actor, patient: Pat
   await batch.commit()
 }
 
-export async function rotatePasscode(circleId: string, actor: Actor) {
+/** New Family and Caregiver codes in one batch (also creates the Caregiver code for circles made before it existed). */
+function rotateCodes(batch: WriteBatch, circleId: string) {
+  batch.set(doc(db, 'circles', circleId, 'secret', 'join'), { passcode: newPasscode() })
+  batch.set(doc(db, 'circles', circleId, 'secret', 'caregiver'), { passcode: newPasscode() })
+}
+
+export async function changeInviteCodes(circleId: string, actor: Actor) {
   const batch = writeBatch(db)
-  batch.update(doc(db, 'circles', circleId, 'secret', 'join'), { passcode: newPasscode() })
-  logActivity(batch, circleId, actor, 'changed the circle passcode')
+  rotateCodes(batch, circleId)
+  logActivity(batch, circleId, actor, 'changed the invite codes')
   await batch.commit()
 }
 
@@ -426,11 +448,11 @@ export async function removeMember(circleId: string, actor: Actor, member: Membe
     await setDoc(doc(db, 'users', actor.uid), { circleIds: arrayRemove(circleId) }, { merge: true })
     return
   }
-  // Removing someone else: one atomic batch that also changes the passcode, so they cannot simply rejoin.
+  // Removing someone else: one atomic batch that also changes the invite codes, so they cannot simply rejoin.
   const batch = writeBatch(db)
   batch.delete(doc(col(circleId, 'members'), member.uid))
-  batch.update(doc(db, 'circles', circleId, 'secret', 'join'), { passcode: newPasscode() })
-  logActivity(batch, circleId, actor, `removed ${member.name} from the circle and changed the passcode`)
+  rotateCodes(batch, circleId)
+  logActivity(batch, circleId, actor, `removed ${member.name} from the circle and changed the invite codes`)
   await batch.commit()
 }
 
