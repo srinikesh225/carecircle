@@ -1,7 +1,7 @@
 import { collection, doc, type WriteBatch } from 'firebase/firestore'
 import { db } from './db'
 import { addDays, at, dayKey, doseKey } from '../domain/schedule'
-import type { Actor } from './circle'
+import type { Actor } from './shared'
 import type { Patient } from '../domain/types'
 
 /**

@@ -4,12 +4,15 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import { AuthProvider } from './auth'
 import { AppRoutes } from './routes'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const app = (
   <StrictMode>
     <AuthProvider>
       <BrowserRouter>
-        <AppRoutes />
+        <ErrorBoundary>
+          <AppRoutes />
+        </ErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
   </StrictMode>

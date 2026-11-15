@@ -1,29 +1,44 @@
-# LinkedIn post draft
+# LinkedIn post (ready to paste)
 
-When you paste this into LinkedIn, type "@Makers Need More" and pick the page from the dropdown so it becomes a real tag. Also tag Google for Developers and Hack2skill if the event asks for it. Attach a screen recording of the demo (scenes 1–3 of demo-script.md, about 40 seconds).
+Before posting:
+
+- Type "@Makers Need More" by hand and pick the page from LinkedIn's dropdown, so it becomes a real tag.
+- Attach a short screen recording, for example the three-role demo from demo-script.md.
+- LinkedIn does not render _asterisks_ as bold, so the headings below are plain text.
 
 ---
 
-[Optional: replace this opening with a true line from your own family, if you have one. Don't invent one.]
+🚀 I just participated in CATALYST - Solo AI Hackathon, a hackathon organised by Makers Need More (MnM) in collaboration with PromptWars!
 
-When an older parent's care is shared between family and a caregiver, the tablets usually aren't the hard part. The phone calls are: "Did she take the afternoon one?" "I think the caregiver gave it?" "Who's taking her to the cardiologist tomorrow?"
+It was an exciting opportunity to turn ideas into reality, explore innovative solutions, and challenge myself to build something meaningful.
 
-For the PromptWars × Catalyst round 2 challenge, _Elderly Care & Medication Management Platform_, I built CareCircle, a shared care record for an older adult, their family and their caregivers.
+💡 My Project:
+CareCircle: shared care for the people who raised you
 
-What it does:
-→ One circle per person. Family and caregivers join with an account plus that circle's passcode, and the database rules enforce it.
-→ When anyone records a dose, every phone in the circle updates instantly and shows who recorded it.
-→ A dose nobody has recorded is marked "not confirmed", never assumed missed, and the circle gets an email.
-→ Shift handover: the next caregiver gets a report built from the records (what was given, what's outstanding, notes, upcoming appointments), with no re-typing.
-→ Early-attention patterns, like "the after-lunch tablet wasn't recorded 3 of the last 7 days", so the family can fix the routine and not just react.
-→ A daily care brief written by Gemini from that day's records only. It can't diagnose or suggest dose changes. If the AI drifts into advice, the server discards it and writes the brief from the records instead.
-→ A large-type patient screen with "I took it" and read-aloud. The patient's own wishes ("ask me before changing my timings") sit at the top of everyone's screen, because the person being cared for should stay in charge of their care.
+🔍 Problem Statement:
+Elderly Care & Medication Management Platform
 
-Built with React, TypeScript, Firebase (Auth + Firestore security rules), Gemini, Resend and Vercel.
+🛠️ What I Built:
+When an older parent's care is split between family at home, a child in another city and a visiting caregiver, the tablets are rarely the hard part. The phone calls are: "Did she take the afternoon one?"
 
-Try it: https://carecircle-pw.vercel.app
-Code: https://github.com/srinikesh225/carecircle
+CareCircle gives the patient, their family and their caregivers one live, shared record of medicines, doses and appointments.
 
-Thanks to @Makers Need More for the challenge.
+→ Secure, role-based access: each circle has a Family code and a Caregiver code, and a caregiver code can never be used to join as family. Firestore security rules enforce this on the server.
+→ Live updates: when anyone records a dose, every member's screen updates within about a second, showing who recorded it.
+→ Honest status: a dose nobody recorded is shown as "not confirmed", never assumed missed, and the circle gets an email reminder. Appointment reminders go out 24 hours ahead.
+→ Early-attention patterns, e.g. "the after-lunch tablet wasn't recorded 3 of the last 7 days".
+→ Shift handover: the next caregiver gets a summary built from the records: what was given, what's outstanding, notes and upcoming appointments.
+→ An AI daily care brief written by Google Gemini from that day's records only. It can't diagnose or suggest dose changes, and falls back to a records-only summary if the AI is unavailable.
+→ The patient stays at the centre: a large-type screen with one-tap "I took it" and read-aloud, and their own wishes shown at the top of everyone's view.
 
-#PromptWars #BuildWithAI #GoogleForDevelopers #ElderlyCare #HealthTech #Firebase #Gemini
+I also put it through a full QA audit: 102 automated tests, 30 security-rule tests in the Firestore emulator, live end-to-end checks with three real users, and CI on every push.
+
+💻 Tech Stack:
+React, TypeScript, Vite, Tailwind CSS, Firebase Authentication, Cloud Firestore, Google Gemini API, Resend (email), Vercel (hosting + serverless functions), Vitest, axe-core, GitHub Actions.
+
+📌 Project Demo: https://carecircle-pw.vercel.app
+📌 GitHub Repository: https://github.com/srinikesh225/carecircle
+
+Thanks to @Makers Need More and PromptWars for the challenge!
+
+#Catalyst2026 #MakersNeedMore #MnM #Hackathon #BuildInPublic #Innovation #TechCommunity

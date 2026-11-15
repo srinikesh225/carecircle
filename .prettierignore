@@ -5,3 +5,4 @@ node_modules
 package-lock.json
 public
 .audit
+docs/judge-prep.md

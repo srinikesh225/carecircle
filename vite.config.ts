@@ -85,7 +85,9 @@ export default defineConfig(({ mode }) => {
       // Measure every source file, not only the ones tests happen to import, so the figure is honest.
       coverage: {
         include: ['src/**/*.{ts,tsx}', 'api/**/*.ts'],
-        exclude: ['**/*.test.{ts,tsx}', 'src/vite-env.d.ts', 'src/main.tsx'],
+        exclude: ['**/*.test.{ts,tsx}', 'src/vite-env.d.ts', 'src/main.tsx', 'src/test/**'],
+        // CI fails if coverage drops below these. src/data is covered separately by the emulator suite.
+        thresholds: { lines: 60, statements: 58, functions: 55, branches: 55 },
       },
     },
   }
